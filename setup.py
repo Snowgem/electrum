@@ -18,7 +18,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
 version = imp.load_source('version', 'lib/version.py')
 
 if sys.version_info[:3] < (3, 4, 0):
-    sys.exit("Error: Electrum-Zcash requires Python version >= 3.4.0...")
+    sys.exit("Error: Electrum-Snowgem requires Python version >= 3.4.0...")
 
 data_files = []
 
@@ -41,7 +41,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     ]
 
 setup(
-    name="Electrum-Zcash",
+    name="Electrum-Snowgem",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
     extras_require={

@@ -1,4 +1,4 @@
-# If you want Electrum-Zcash to appear in a Linux app launcher ("start menu"), install this by doing:
+# If you want Electrum-Snowgem to appear in a Linux app launcher ("start menu"), install this by doing:
 # sudo desktop-file-install electrum-zcash.desktop
 
 [Desktop Entry]
@@ -7,8 +7,8 @@ Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-zcash %u"
 GenericName[en_US]=Zcash Wallet
 GenericName=Zcash Wallet
 Icon=electrum-zcash.png
-Name[en_US]=Electrum-Zcash Bitcoin Wallet
-Name=Electrum-Zcash Bitcoin Wallet
+Name[en_US]=Electrum-Snowgem Bitcoin Wallet
+Name=Electrum-Snowgem Bitcoin Wallet
 Categories=Finance;Network;
 StartupNotify=false
 Terminal=false

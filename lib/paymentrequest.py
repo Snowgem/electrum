@@ -47,8 +47,8 @@ from . import rsakey
 
 from .bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/zcash-paymentrequest', 'User-Agent': 'Electrum-Zcash'}
-ACK_HEADERS = {'Content-Type':'application/zcash-payment','Accept':'application/zcash-paymentack','User-Agent':'Electrum-Zcash'}
+REQUEST_HEADERS = {'Accept': 'application/zcash-paymentrequest', 'User-Agent': 'Electrum-Snowgem'}
+ACK_HEADERS = {'Content-Type':'application/zcash-payment','Accept':'application/zcash-paymentack','User-Agent':'Electrum-Snowgem'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -267,7 +267,7 @@ class PaymentRequest:
         paymnt.transactions.append(bfh(raw_tx))
         ref_out = paymnt.refund_to.add()
         ref_out.script = util.bfh(transaction.Transaction.pay_script(TYPE_ADDRESS, refund_addr))
-        paymnt.memo = "Paid using Electrum-Zcash"
+        paymnt.memo = "Paid using Electrum-Snowgem"
         pm = paymnt.SerializeToString()
         payurl = urllib.parse.urlparse(pay_det.payment_url)
         try:

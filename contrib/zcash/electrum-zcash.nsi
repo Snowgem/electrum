@@ -7,7 +7,7 @@
 ;--------------------------------
 ;Variables
 
-  !define PRODUCT_NAME "Electrum-Zcash"
+  !define PRODUCT_NAME "Electrum-Snowgem"
   !define PRODUCT_WEB_SITE "https://github.com/zebra-lucky/electrum-zcash"
   !define PRODUCT_PUBLISHER "Electrum Technologies GmbH"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

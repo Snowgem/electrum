@@ -68,10 +68,10 @@ class SeedLayout(QVBoxLayout):
                 if b:
                     msg = ' '.join([
                         '<b>' + _('Warning') + ':</b>  ',
-                        _('BIP39 seeds can be imported in Electrum-Zcash, so that users can access funds locked in other wallets.'),
+                        _('BIP39 seeds can be imported in Electrum-Snowgem, so that users can access funds locked in other wallets.'),
                         _('However, we do not generate BIP39 seeds, because they do not meet our safety standard.'),
                         _('BIP39 seeds do not include a version number, which compromises compatibility with future software.'),
-                        _('We do not guarantee that BIP39 imports will always be supported in Electrum-Zcash.'),
+                        _('We do not guarantee that BIP39 imports will always be supported in Electrum-Snowgem.'),
                     ])
                 else:
                     msg = ''
@@ -189,7 +189,7 @@ class KeysLayout(QVBoxLayout):
 class SeedDialog(WindowModalDialog):
 
     def __init__(self, parent, seed, passphrase):
-        WindowModalDialog.__init__(self, parent, ('Electrum-Zcash - ' + _('Seed')))
+        WindowModalDialog.__init__(self, parent, ('Electrum-Snowgem - ' + _('Seed')))
         self.setMinimumWidth(400)
         vbox = QVBoxLayout(self)
         title =  _("Your wallet generation seed is:")

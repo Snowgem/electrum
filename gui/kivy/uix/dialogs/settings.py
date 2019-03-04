@@ -17,7 +17,7 @@ Builder.load_string('''
 
 <SettingsDialog@Popup>
     id: settings
-    title: _('Electrum-Zcash Settings')
+    title: _('Electrum-Snowgem Settings')
     disable_pin: False
     use_encryption: False
     BoxLayout:

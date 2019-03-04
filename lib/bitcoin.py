@@ -37,6 +37,8 @@ from . import version
 from .util import print_error, InvalidPassword, assert_bytes, to_bytes, inv_dict
 from . import constants
 
+HDR_LEN = 1487
+HDR_LEN_FORK = 241
 
 ################################## transactions
 
@@ -57,6 +59,17 @@ except:
 
 class InvalidPadding(Exception):
     pass
+
+def is_post_equihash_fork(height):
+    return height >= constants.net.EQUIHASH_FORK_HEIGHT
+
+def get_header_size(height):
+    size = HDR_LEN
+
+    if is_post_equihash_fork(height):
+        size = HDR_LEN_FORK
+
+    return size
 
 
 def append_PKCS7_padding(data):

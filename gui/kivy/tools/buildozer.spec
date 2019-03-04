@@ -1,10 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = Electrum-Zcash
+title = Electrum-Snowgem
 
 # (str) Package name
-package.name = Electrum-Zcash
+package.name = Electrum-Snowgem
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = cash.z.electrum

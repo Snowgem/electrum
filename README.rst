@@ -20,30 +20,30 @@ Electrum-Zcash - Lightweight Zcash client
 Getting started
 ===============
 
-Electrum-Zcash is a pure python application. If you want to use the
+Electrum-Snowgem is a pure python application. If you want to use the
 Qt interface, install the Qt dependencies::
 
     sudo apt-get install python3-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
-Electrum-Zcash from its root directory, without installing it on your
+Electrum-Snowgem from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
-directory. To run Electrum-Zcash from its root directory, just do::
+directory. To run Electrum-Snowgem from its root directory, just do::
 
     ./electrum-zcash
 
-You can also install Electrum-Zcash on your system, by running this command::
+You can also install Electrum-Snowgem on your system, by running this command::
 
     sudo apt-get install python3-setuptools
     pip3 install .[full]
 
 This will download and install the Python dependencies used by
-Electrum-Zcash, instead of using the 'packages' directory.
+Electrum-Snowgem, instead of using the 'packages' directory.
 The 'full' extra contains some optional dependencies that we think
 are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
-before you can run Electrum-Zcash. Read the next section, "Development
+before you can run Electrum-Snowgem. Read the next section, "Development
 Version".
 
 
@@ -86,7 +86,7 @@ To create binaries, create the 'packages' directory::
 
     ./contrib/make_packages
 
-This directory contains the python dependencies used by Electrum-Zcash.
+This directory contains the python dependencies used by Electrum-Snowgem.
 
 Android
 -------

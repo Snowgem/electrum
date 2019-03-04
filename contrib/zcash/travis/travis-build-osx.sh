@@ -44,6 +44,6 @@ pyinstaller \
     --name electrum-zcash-$ELECTRUM_ZCASH_VERSION.bin \
     osx.spec
 
-sudo hdiutil create -fs HFS+ -volname "Electrum-Zcash" \
-    -srcfolder dist/Electrum-Zcash.app \
+sudo hdiutil create -fs HFS+ -volname "Electrum-Snowgem" \
+    -srcfolder dist/Electrum-Snowgem.app \
     dist/electrum-zcash-$ELECTRUM_ZCASH_VERSION-macosx.dmg

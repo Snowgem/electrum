@@ -151,7 +151,7 @@ coll = COLLECT(exe, tctl_exe,
                name=os.path.join('dist', 'electrum-zcash'))
 
 app = BUNDLE(coll,
-             name=os.path.join('dist', 'Electrum-Zcash.app'),
-             appname="Electrum-Zcash",
+             name=os.path.join('dist', 'Electrum-Snowgem.app'),
+             appname="Electrum-Snowgem",
 	         icon='electrum-zcash.icns',
              version = 'ELECTRUM_VERSION')

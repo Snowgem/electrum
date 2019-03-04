@@ -7,18 +7,18 @@ import stat
 from copy import deepcopy
 
 from .util import (user_dir, print_error, PrintError,
-                   NoDynamicFeeEstimates)
+                   NoDynamicFeeEstimates, format_satoshis)
 from .i18n import _
 
 FEE_ETA_TARGETS = [25, 10, 5, 2]
 FEE_DEPTH_TARGETS = [10000000, 5000000, 2000000, 1000000, 500000, 200000, 100000]
 
 # satoshi per kbyte
-FEERATE_MAX_DYNAMIC = 150000
-FEERATE_WARNING_HIGH_FEE = 100000
-FEERATE_FALLBACK_STATIC_FEE = 1000
+FEERATE_MAX_DYNAMIC = 1500000
+FEERATE_WARNING_HIGH_FEE = 600000
+FEERATE_FALLBACK_STATIC_FEE = 5000
 FEERATE_DEFAULT_RELAY = 1000
-FEERATE_STATIC_VALUES = [150, 300, 500, 1000, 1500, 2500, 3500, 5000, 7500, 10000]
+FEERATE_STATIC_VALUES = [5000, 10000, 20000, 30000, 50000, 70000, 100000, 150000, 200000, 300000]
 
 
 config = None
@@ -238,7 +238,7 @@ class SimpleConfig(PrintError):
         # default path
         if not os.path.exists(self.path):
             raise FileNotFoundError(
-                _('Electrum-Zcash datadir does not exist. Was it deleted while running?') + '\n' +
+                _('Electrum-Snowgem datadir does not exist. Was it deleted while running?') + '\n' +
                 _('Should be at {}').format(self.path))
         dirpath = os.path.join(self.path, "wallets")
         if not os.path.exists(dirpath):
@@ -367,7 +367,7 @@ class SimpleConfig(PrintError):
         text is what we target: static fee / num blocks to confirm in / mempool depth
         tooltip is the corresponding estimate (e.g. num blocks for a static fee)
         """
-        rate_str = ('%s sat/kB' % round(fee_rate)) if fee_rate is not None else 'unknown'
+        rate_str = (format_satoshis(fee_rate/1000, False, 0, 0, False)  + ' sat/byte') if fee_rate is not None else 'unknown'
         if dyn:
             if mempool:
                 depth = self.depth_target(pos)
@@ -407,7 +407,7 @@ class SimpleConfig(PrintError):
                 maxp = len(FEE_ETA_TARGETS)  # not (-1) to have "next block"
                 fee_rate = self.eta_to_fee(pos)
         else:
-            fee_rate = self.fee_per_kb(dyn=False)
+            fee_rate = self.fee_per_kb()
             pos = self.static_fee_index(fee_rate)
             maxp = 9
         return maxp, pos, fee_rate
@@ -434,7 +434,7 @@ class SimpleConfig(PrintError):
             return self.has_fee_etas()
 
     def is_dynfee(self):
-        return bool(self.get('dynamic_fees', True))
+        return bool(self.get('dynamic_fees', False))
 
     def use_mempool_fees(self):
         return False

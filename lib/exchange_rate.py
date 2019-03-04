@@ -41,12 +41,12 @@ class ExchangeBase(PrintError):
     def get_json(self, site, get_string):
         # APIs must have https
         url = ''.join(['https://', site, get_string])
-        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum-Zcash'}, timeout=10)
+        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum-Snowgem'}, timeout=10)
         return response.json()
 
     def get_csv(self, site, get_string):
         url = ''.join(['https://', site, get_string])
-        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum-Zcash'})
+        response = requests.request('GET', url, headers={'User-Agent' : 'Electrum-Snowgem'})
         reader = csv.DictReader(response.content.decode().split('\n'))
         return list(reader)
 
@@ -125,7 +125,7 @@ class BitcoinAverage(ExchangeBase):
 
     def get_rates(self, ccy):
         json = self.get_json('apiv2.bitcoinaverage.com',
-                             '/indices/local/ticker/ZEC%s' % ccy)
+                             '/indices/local/ticker/XSG%s' % ccy)
         return {ccy: Decimal(json['last'])}
 
 
@@ -134,7 +134,7 @@ class BitcoinAverage(ExchangeBase):
 
     def request_history(self, ccy):
         history = self.get_json('apiv2.bitcoinaverage.com',
-                               "/indices/local/history/ZEC%s"
+                               "/indices/local/history/XSG%s"
                                "?period=alltime&format=json" % ccy)
         return dict([(h['time'][:10], h['average']) for h in history])
 
@@ -142,7 +142,7 @@ class BitcoinAverage(ExchangeBase):
 class Bittrex(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('bittrex.com',
-                             '/api/v1.1/public/getticker?market=BTC-ZEC')
+                             '/api/v1.1/public/getticker?market=BTC-XSG')
         quote_currencies = {}
         if not json.get('success', False):
             return quote_currencies
@@ -155,7 +155,7 @@ class Poloniex(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('poloniex.com', '/public?command=returnTicker')
         quote_currencies = {}
-        zcash_ticker = json.get('BTC_ZEC')
+        zcash_ticker = json.get('BTC_XSG')
         quote_currencies['BTC'] = Decimal(zcash_ticker['last'])
         return quote_currencies
 

@@ -40,7 +40,7 @@ def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
-base_units = {'ZEC':8, 'mZEC':5, 'uZEC':2}
+base_units = {'XSG':8, 'mXSG':5, 'uXSG':2}
 
 def normalize_version(v):
     return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
@@ -403,11 +403,11 @@ def user_dir():
     if 'ANDROID_DATA' in os.environ:
         return android_check_data_dir()
     elif os.name == 'posix':
-        return os.path.join(os.environ["HOME"], ".electrum-zcash")
+        return os.path.join(os.environ["HOME"], ".electrum-xsg")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-Zcash")
+        return os.path.join(os.environ["APPDATA"], "Electrum-xsg")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-Zcash")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-xsg")
     else:
         #raise Exception("No home directory found in environment variables.")
         return
