@@ -1,13 +1,13 @@
 #!/bin/bash
 
 source ./contrib/zcash/travis/electrum_zcash_version_env.sh;
-echo wine build version is $ELECTRUM_ZCASH_VERSION
+echo wine build version is $ELECTRUM_SNOWGEM_VERSION
 
 mv /opt/zbarw $WINEPREFIX/drive_c/
-cd $WINEPREFIX/drive_c/electrum-zcash
+cd $WINEPREFIX/drive_c/electrum-snowgem
 
 rm -rf build
-rm -rf dist/electrum-zcash
+rm -rf dist/electrum-snowgem
 
 cp contrib/zcash/deterministic.spec .
 cp contrib/zcash/pyi_runtimehook.py .
@@ -34,7 +34,7 @@ mkdir $WINEPREFIX/drive_c/Qt
 ln -s $PYHOME/Lib/site-packages/PyQt5/ $WINEPREFIX/drive_c/Qt/5.5.1
 
 wine pyinstaller -y \
-    --name electrum-zcash-$ELECTRUM_ZCASH_VERSION.exe \
+    --name electrum-snowgem-$ELECTRUM_SNOWGEM_VERSION.exe \
     deterministic.spec
 
 if [[ $WINEARCH == win32 ]]; then
@@ -44,6 +44,6 @@ else
 fi
 
 wine "$NSIS_EXE" /NOCD -V3 \
-    /DPRODUCT_VERSION=$ELECTRUM_ZCASH_VERSION \
+    /DPRODUCT_VERSION=$ELECTRUM_SNOWGEM_VERSION \
     /DWINEARCH=$WINEARCH \
     contrib/zcash/electrum-zcash.nsi

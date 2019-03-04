@@ -845,7 +845,7 @@ class Transaction:
             #else:
             #    s_joinSplits = bfh(''.join(self.serialize_join_split(j) for j in joinSplits))
             #    s_joinSplits += self.joinSplitPubKey
-            #    hashJoinSplits = blake2b(s_joinSplits, digest_size=32, person=b'ZcashJSplitsHash').hexdigest()
+            #    hashJoinSplits = blake2b(s_joinSplits, digest_size=32, person=b'SnowGemJSplitsHash').hexdigest()
             hashJoinSplits = '00'*32
             hashShieldedSpends = '00'*32
             hashShieldedOutputs = '00'*32

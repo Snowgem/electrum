@@ -27,9 +27,9 @@ Manual signing:
     jarsigner -verbose \
         -tsa http://sha256timestamp.ws.symantec.com/sha256/timestamp \
         -sigalg SHA1withRSA -digestalg SHA1 \
-        -sigfile zcash-electrum \
+        -sigfile snowgem-electrum \
         -keystore ~/.jks/keystore \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
+        Electrum_SnowGem-3.0.6.1-release-unsigned.apk \
         electrum.z.cash
 
 Zipalign from Android SDK build tools is also required (set path to bin in
@@ -48,8 +48,8 @@ settings file or with key -z). To install:
 Manual zip aligning:
 
     android-sdk-linux/build-tools/27.0.3/zipalign -v 4 \
-        Electrum_Zcash-3.0.6.1-release-unsigned.apk \
-        Electrum_Zcash-3.0.6.1-release.apk
+        Electrum_SnowGem-3.0.6.1-release-unsigned.apk \
+        Electrum_SnowGem-3.0.6.1-release.apk
 
 
 
@@ -145,7 +145,7 @@ PEP440_PUBVER_PATTERN = re.compile('^((\d+)!)?'
 REL_NOTES_PATTERN = re.compile('^#.+?(^[^#].+?)^#.+?', re.M | re.S)
 SDIST_NAME_PATTERN = re.compile('^Electrum-Snowgem-(.*).tar.gz$')
 SDIST_DIR_TEMPLATE = 'Electrum-Snowgem-{version}'
-PPA_SOURCE_NAME = 'electrum-zcash'
+PPA_SOURCE_NAME = 'electrum-snowgem'
 PPA_ORIG_NAME_TEMPLATE = '%s_{version}.orig.tar.gz' % PPA_SOURCE_NAME
 CHANGELOG_TEMPLATE = """%s ({ppa_version}) {series}; urgency=medium
 {changes} -- {uid}  {time}""" % PPA_SOURCE_NAME
@@ -164,12 +164,12 @@ JARSIGNER_ARGS = [
     'jarsigner', '-verbose',
     '-tsa', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
     '-sigalg', 'SHA1withRSA', '-digestalg', 'SHA1',
-    '-sigfile', 'zcash-electrum',
+    '-sigfile', 'snowgem-electrum',
     '-storepass:env', JKS_STOREPASS,
     '-keypass:env', JKS_KEYPASS,
 ]
-UNSIGNED_APK_PATTERN = re.compile('^Electrum_Zcash-(.*)-release-unsigned.apk$')
-SIGNED_APK_TEMPLATE = 'Electrum_Zcash-{version}-release.apk'
+UNSIGNED_APK_PATTERN = re.compile('^Electrum_SnowGem-(.*)-release-unsigned.apk$')
+SIGNED_APK_TEMPLATE = 'Electrum_SnowGem-{version}-release.apk'
 
 
 os.environ['QUILT_PATCHES'] = 'debian/patches'

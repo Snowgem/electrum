@@ -1,4 +1,4 @@
-Electrum-Zcash - Lightweight Zcash client
+Electrum-SnowGem - Lightweight SnowGem client
 =====================================
 
 ::
@@ -6,11 +6,11 @@ Electrum-Zcash - Lightweight Zcash client
   Licence: MIT Licence
   Author: Thomas Voegtlin
   Language: Python
-  Homepage: https://github.com/zebra-lucky/electrum-zcash
+  Homepage: https://github.com/Snowgem/electrum-snowgem
 
 
-.. image:: https://travis-ci.org/zebra-lucky/electrum-zcash.svg?branch=master
-    :target: https://travis-ci.org/zebra-lucky/electrum-zcash
+.. image:: https://github.com/Snowgem/electrum-snowgem.svg?branch=master
+    :target: https://github.com/Snowgem/electrum-snowgem
     :alt: Build Status
 
 
@@ -30,7 +30,7 @@ Electrum-Snowgem from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum-Snowgem from its root directory, just do::
 
-    ./electrum-zcash
+    ./electrum-snowgem
 
 You can also install Electrum-Snowgem on your system, by running this command::
 

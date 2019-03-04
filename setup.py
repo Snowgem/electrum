@@ -37,7 +37,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
         (os.path.join(usr_share, 'applications/'), ['electrum-zcash.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['icons/electrum-zcash.png'])
+        (os.path.join(usr_share, icons_dirname), ['icons/electrum-snowgem.png'])
     ]
 
 setup(
@@ -78,12 +78,12 @@ setup(
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum-zcash'],
+    scripts=['electrum-snowgem'],
     data_files=data_files,
-    description="Lightweight Zcash Wallet",
+    description="Lightweight SnowGem Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT License",
-    url="https://github.com/zebra-lucky/electrum-zcash",
-    long_description="""Lightweight Zcash Wallet"""
+    url="https://github.com/Snowgem/electrum-snowgem",
+    long_description="""Lightweight SnowGem Wallet"""
 )

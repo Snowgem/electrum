@@ -123,8 +123,8 @@ exe = EXE(pyz,
           strip=False,
           upx=False,
           console=False,
-          icon='icons/electrum-zcash.ico',
-          name=os.path.join('build/electrum-zcash/electrum-zcash', cmdline_name))
+          icon='icons/electrum-snowgem.ico',
+          name=os.path.join('build/electrum-snowgem/electrum-snowgem', cmdline_name))
 
 # trezorctl separate bin
 tctl_a = Analysis([os.path.join(PY36BINDIR, 'trezorctl')],
@@ -141,17 +141,17 @@ tctl_exe = EXE(tctl_pyz,
            strip=False,
            upx=False,
            console=True,
-           name=os.path.join('build/electrum-zcash/electrum-zcash', 'trezorctl.bin'))
+           name=os.path.join('build/electrum-snowgem/electrum-snowgem', 'trezorctl.bin'))
 
 coll = COLLECT(exe, tctl_exe,
                a.binaries,
                a.datas,
                strip=False,
                upx=False,
-               name=os.path.join('dist', 'electrum-zcash'))
+               name=os.path.join('dist', 'electrum-snowgem'))
 
 app = BUNDLE(coll,
              name=os.path.join('dist', 'Electrum-Snowgem.app'),
              appname="Electrum-Snowgem",
-	         icon='electrum-zcash.icns',
+	         icon='electrum-snowgem.icns',
              version = 'ELECTRUM_VERSION')

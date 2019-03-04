@@ -174,7 +174,7 @@ class SendScreen(CScreen):
         try:
             uri = electrum_zcash.util.parse_URI(text, self.app.on_pr)
         except:
-            self.app.show_info(_("Not a Zcash URI"))
+            self.app.show_info(_("Not a SnowGem URI"))
             return
         amount = uri.get('amount')
         self.screen.address = uri.get('address', '')
@@ -243,10 +243,10 @@ class SendScreen(CScreen):
         else:
             address = str(self.screen.address)
             if not address:
-                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a Zcash address or a payment request'))
+                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a SnowGem address or a payment request'))
                 return
             if not bitcoin.is_address(address):
-                self.app.show_error(_('Invalid Zcash Address') + ':\n' + address)
+                self.app.show_error(_('Invalid SnowGem Address') + ':\n' + address)
                 return
             try:
                 amount = self.app.get_amount(self.screen.amount)
@@ -356,7 +356,7 @@ class ReceiveScreen(CScreen):
 
     def do_share(self):
         uri = self.get_URI()
-        self.app.do_share(uri, _("Share Zcash Request"))
+        self.app.do_share(uri, _("Share SnowGem Request"))
 
     def do_copy(self):
         uri = self.get_URI()

@@ -44,7 +44,7 @@ Builder.load_string('''
                 SettingsItem:
                     bu: app.base_unit
                     title: _('Denomination') + ': ' + self.bu
-                    description: _("Base unit for Zcash amounts.")
+                    description: _("Base unit for SnowGem amounts.")
                     action: partial(root.unit_dialog, self)
                 CardSeparator
                 SettingsItem:

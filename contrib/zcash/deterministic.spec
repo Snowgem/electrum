@@ -120,7 +120,7 @@ exe = EXE(pyz,
           strip=False,
           upx=False,
           console=False,
-          icon='icons/electrum-zcash.ico',
+          icon='icons/electrum-snowgem.ico',
           name=os.path.join('build\\pyi.win32\\electrum', cmdline_name))
 
 # exe with console output
@@ -131,7 +131,7 @@ conexe = EXE(pyz,
           strip=False,
           upx=False,
           console=True,
-          icon='icons/electrum-zcash.ico',
+          icon='icons/electrum-snowgem.ico',
           name=os.path.join('build\\pyi.win32\\electrum',
                             'console-%s' % cmdline_name))
 
@@ -157,4 +157,4 @@ coll = COLLECT(exe, conexe, tctl_exe,
                a.datas,
                strip=False,
                upx=False,
-               name=os.path.join('dist', 'electrum-zcash'))
+               name=os.path.join('dist', 'electrum-snowgem'))

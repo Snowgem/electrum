@@ -163,7 +163,7 @@ class TrezorPlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "ZcashTestnet" if constants.net.TESTNET else "Zcash"
+        return "SnowGemTestnet" if constants.net.TESTNET else "SnowGem"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method

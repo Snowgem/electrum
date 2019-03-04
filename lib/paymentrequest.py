@@ -47,8 +47,8 @@ from . import rsakey
 
 from .bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/zcash-paymentrequest', 'User-Agent': 'Electrum-Snowgem'}
-ACK_HEADERS = {'Content-Type':'application/zcash-payment','Accept':'application/zcash-paymentack','User-Agent':'Electrum-Snowgem'}
+REQUEST_HEADERS = {'Accept': 'application/snowgem-paymentrequest', 'User-Agent': 'Electrum-Snowgem'}
+ACK_HEADERS = {'Content-Type':'application/snowgem-payment','Accept':'application/snowgem-paymentack','User-Agent':'Electrum-Snowgem'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -76,9 +76,9 @@ def get_payment_request(url):
         try:
             response = requests.request('GET', url, headers=REQUEST_HEADERS)
             response.raise_for_status()
-            # Guard against `zcash:`-URIs with invalid payment request URLs
+            # Guard against `snowgem:`-URIs with invalid payment request URLs
             if "Content-Type" not in response.headers \
-            or response.headers["Content-Type"] != "application/zcash-paymentrequest":
+            or response.headers["Content-Type"] != "application/snowgem-paymentrequest":
                 data = None
                 error = "payment URL not pointing to a payment request handling server"
             else:

@@ -2,20 +2,20 @@
 # sudo desktop-file-install electrum-zcash.desktop
 
 [Desktop Entry]
-Comment=Lightweight Zcash Client
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-zcash %u"
-GenericName[en_US]=Zcash Wallet
-GenericName=Zcash Wallet
-Icon=electrum-zcash.png
+Comment=Lightweight SnowGem Client
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-snowgem %u"
+GenericName[en_US]=SnowGem Wallet
+GenericName=SnowGem Wallet
+Icon=electrum-snowgem.png
 Name[en_US]=Electrum-Snowgem Bitcoin Wallet
 Name=Electrum-Snowgem Bitcoin Wallet
 Categories=Finance;Network;
 StartupNotify=false
 Terminal=false
 Type=Application
-MimeType=x-scheme-handler/zcash;
+MimeType=x-scheme-handler/snowgem;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-zcash --testnet %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-snowgem --testnet %u"
 Name=Testnet mode

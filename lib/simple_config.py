@@ -119,7 +119,7 @@ class SimpleConfig(PrintError):
             path = os.path.join(path, 'regtest')
             make_dir(path)
 
-        self.print_error("electrum-zcash directory", path)
+        self.print_error("electrum-snowgem directory", path)
         return path
 
     def rename_config_keys(self, config, keypairs, deprecation_warning=False):
@@ -488,7 +488,7 @@ class SimpleConfig(PrintError):
 
 
 def read_user_config(path):
-    """Parse and store the user config settings in electrum-zcash.conf into user_config[]."""
+    """Parse and store the user config settings in electrum-snowgem.conf into user_config[]."""
     if not path:
         return {}
     config_path = os.path.join(path, "config")
