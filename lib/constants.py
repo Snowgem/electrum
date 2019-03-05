@@ -56,7 +56,7 @@ class BitcoinMainnet:
     EQUIHASH_K_NEW = 5
     FORK_BLOCK = 266000
 
-	EQUIHASH_FORK_HEIGHT = 266001
+    EQUIHASH_FORK_HEIGHT = 266001
     OVERWINTER_HEIGHT = 520000
     XPRV_HEADERS = {
         'standard': 0x0488ade4,
@@ -103,7 +103,7 @@ class BitcoinTestnet:
         'p2wsh-p2sh': 0x295b43f,
         'p2wpkh': 0x4b24746,
         'p2wsh': 0x2aa7ed3
-	}
+    }
     EQUIHASH_FORK_HEIGHT = 200000
     OVERWINTER_HEIGHT = 207500
 
