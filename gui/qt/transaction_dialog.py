@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2012 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -31,14 +31,14 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_zcash.bitcoin import base_encode
-from electrum_zcash.i18n import _
-from electrum_zcash.plugins import run_hook
-from electrum_zcash import simple_config
+from electrum.bitcoin import base_encode
+from electrum.i18n import _
+from electrum.plugins import run_hook
+from electrum import simple_config
 
-from electrum_zcash.util import bfh
-from electrum_zcash.wallet import AddTransactionException
-from electrum_zcash.transaction import SerializationError
+from electrum.util import bfh
+from electrum.wallet import AddTransactionException
+from electrum.transaction import SerializationError
 
 from .util import *
 
@@ -50,7 +50,7 @@ def show_transaction(tx, parent, desc=None, prompt_if_unsaved=False):
         d = TxDialog(tx, parent, desc, prompt_if_unsaved)
     except SerializationError as e:
         traceback.print_exc(file=sys.stderr)
-        parent.show_critical(_("Electrum was unable to deserialize the transaction:") + "\n" + str(e))
+        parent.show_critical(_("SnowGem Electrum was unable to deserialize the transaction:") + "\n" + str(e))
     else:
         dialogs.append(d)
         d.show()
@@ -211,7 +211,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         desc = self.desc
         base_unit = self.main_window.base_unit()
         format_amount = self.main_window.format_amount
-        tx_hash, status, label, can_broadcast, amount, fee, height, conf, timestamp, exp_n = self.wallet.get_tx_info(self.tx)
+        tx_hash, status, label, can_broadcast, can_rbf, amount, fee, height, conf, timestamp, exp_n = self.wallet.get_tx_info(self.tx)
         size = self.tx.estimated_size()
         self.broadcast_button.setEnabled(can_broadcast)
         can_sign = not self.tx.is_complete() and \

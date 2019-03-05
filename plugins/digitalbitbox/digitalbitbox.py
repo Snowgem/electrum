@@ -4,16 +4,16 @@
 #
 
 try:
-    import electrum_zcash
-    from electrum_zcash.bitcoin import TYPE_ADDRESS, push_script, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey
-    from electrum_zcash.bitcoin import serialize_xpub, deserialize_xpub
-    from electrum_zcash import constants
-    from electrum_zcash.transaction import Transaction
-    from electrum_zcash.i18n import _
-    from electrum_zcash.keystore import Hardware_KeyStore
+    import electrum
+    from electrum.bitcoin import TYPE_ADDRESS, push_script, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey
+    from electrum.bitcoin import serialize_xpub, deserialize_xpub
+    from electrum import constants
+    from electrum.transaction import Transaction
+    from electrum.i18n import _
+    from electrum.keystore import Hardware_KeyStore
     from ..hw_wallet import HW_PluginBase
-    from electrum_zcash.util import print_error, to_string, UserCancelled
-    from electrum_zcash.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
+    from electrum.util import print_error, to_string, UserCancelled
+    from electrum.base_wizard import ScriptTypeNotSupported, HWD_SETUP_NEW_WALLET
 
     import time
     import hid
@@ -91,11 +91,11 @@ class DigitalBitbox_Client():
 
     def _get_xpub(self, bip32_path):
         if self.check_device_dialog():
-            return self.hid_send_encrypt(('{"xpub": "%s"}' % bip32_path).encode('utf8'))
+            return self.hid_send_encrypt(b'{"xpub": "%s"}' % bip32_path.encode('utf8'))
 
 
     def get_xpub(self, bip32_path, xtype):
-        assert xtype in ('standard')
+        assert xtype in ('standard', 'p2wpkh-p2sh')
         reply = self._get_xpub(bip32_path)
         if reply:
             xpub = reply['xpub']
@@ -107,7 +107,7 @@ class DigitalBitbox_Client():
                 xpub = serialize_xpub(xtype, c, cK, depth, fingerprint, child_number)
             return xpub
         else:
-            raise Exception('no reply')
+            raise BaseException('no reply')
 
 
     def dbb_has_password(self):
@@ -121,7 +121,7 @@ class DigitalBitbox_Client():
 
     def stretch_key(self, key):
         import pbkdf2, hmac
-        return to_hexstr(pbkdf2.PBKDF2(key, b'Digital Bitbox', iterations = 20480, macmodule = hmac, digestmodule = hashlib.sha512).read(64))
+        return binascii.hexlify(pbkdf2.PBKDF2(key, b'Digital Bitbox', iterations = 20480, macmodule = hmac, digestmodule = hashlib.sha512).read(64))
 
 
     def backup_password_dialog(self):
@@ -255,14 +255,9 @@ class DigitalBitbox_Client():
             return
 
         try:
-            # Python 3.5+
-            jsonDecodeError = json.JSONDecodeError
-        except AttributeError:
-            jsonDecodeError = ValueError
-        try:
             with open(os.path.join(dbb_user_dir, "config.dat")) as f:
                 dbb_config = json.load(f)
-        except (FileNotFoundError, jsonDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError):
             return
 
         if 'encryptionprivkey' not in dbb_config or 'comserverchannelid' not in dbb_config:
@@ -270,7 +265,7 @@ class DigitalBitbox_Client():
 
         choices = [
             _('Do not pair'),
-            _('Import pairing from the Digital Bitbox desktop app'),
+            _('Import pairing from the digital bitbox desktop app'),
         ]
         try:
             reply = self.handler.win.query_choice(_('Mobile pairing options'), choices)
@@ -289,8 +284,8 @@ class DigitalBitbox_Client():
 
     def dbb_generate_wallet(self):
         key = self.stretch_key(self.password)
-        filename = ("Electrum-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf")
-        msg = ('{"seed":{"source": "create", "key": "%s", "filename": "%s", "entropy": "%s"}}' % (key, filename, 'Digital Bitbox Electrum Plugin')).encode('utf8')
+        filename = ("Electrum-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf").encode('utf8')
+        msg = b'{"seed":{"source": "create", "key": "%s", "filename": "%s", "entropy": "%s"}}' % (key, filename, b'Digital Bitbox Electrum Plugin')
         reply = self.hid_send_encrypt(msg)
         if 'error' in reply:
             raise Exception(reply['error']['message'])
@@ -325,7 +320,7 @@ class DigitalBitbox_Client():
             self.handler.show_message(_("Loading backup...") + "\n\n" +
                                       _("To continue, touch the Digital Bitbox's light for 3 seconds.") + "\n\n" +
                                       _("To cancel, briefly touch the light or wait for the timeout."))
-        msg = ('{"seed":{"source": "backup", "key": "%s", "filename": "%s"}}' % (key, backups['backup'][f])).encode('utf8')
+        msg = b'{"seed":{"source": "backup", "key": "%s", "filename": "%s"}}' % (key, backups['backup'][f].encode('utf8'))
         hid_reply = self.hid_send_encrypt(msg)
         self.handler.finished()
         if 'error' in hid_reply:
@@ -453,7 +448,7 @@ class DigitalBitbox_KeyStore(Hardware_KeyStore):
             hasharray.append({'hash': inputHash, 'keypath': inputPath})
             hasharray = json.dumps(hasharray)
 
-            msg = ('{"sign":{"meta":"sign message", "data":%s}}' % hasharray).encode('utf8')
+            msg = b'{"sign":{"meta":"sign message", "data":%s}}' % hasharray.encode('utf8')
 
             dbb_client = self.plugin.get_client(self)
 
@@ -696,7 +691,7 @@ class DigitalBitboxPlugin(HW_PluginBase):
         client.handler = self.create_handler(wizard)
         if purpose == HWD_SETUP_NEW_WALLET:
             client.setupRunning = True
-        client.get_xpub("m/44'/133'", 'standard')
+        client.get_xpub("m/44'/0'", 'standard')
 
 
     def is_mobile_paired(self):
@@ -718,7 +713,7 @@ class DigitalBitboxPlugin(HW_PluginBase):
 
 
     def get_xpub(self, device_id, derivation, xtype, wizard):
-        if xtype not in ('standard', 'p2wpkh-p2sh', 'p2wpkh'):
+        if xtype not in ('standard', 'p2wpkh-p2sh'):
             raise ScriptTypeNotSupported(_('This type of script is not supported with the Digital Bitbox.'))
         devmgr = self.device_manager()
         client = devmgr.client_by_id(device_id)

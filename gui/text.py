@@ -3,10 +3,10 @@ import curses, datetime, locale
 from decimal import Decimal
 import getpass
 
-import electrum_zcash
-from electrum_zcash.util import format_satoshis, set_verbosity
-from electrum_zcash.bitcoin import is_address, COIN, TYPE_ADDRESS
-from electrum_zcash import Wallet, WalletStorage
+import electrum
+from electrum.util import format_satoshis, set_verbosity
+from electrum.bitcoin import is_address, COIN, TYPE_ADDRESS
+from electrum import Wallet, WalletStorage
 
 _ = lambda x:x
 
@@ -392,7 +392,7 @@ class ElectrumGui:
                         self.show_message("Error:" + server + "\nIn doubt, type \"auto-connect\"")
                         return False
             if out.get('server') or out.get('proxy'):
-                proxy = electrum_zcash.network.deserialize_proxy(out.get('proxy')) if out.get('proxy') else proxy_config
+                proxy = electrum.network.deserialize_proxy(out.get('proxy')) if out.get('proxy') else proxy_config
                 self.network.set_parameters(host, port, protocol, proxy, auto_connect)
 
     def settings_dialog(self):

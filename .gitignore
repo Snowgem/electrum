@@ -4,8 +4,9 @@
 build/
 dist/
 *.egg/
-*.egg/
 /electrum.py
+/electrum-mac.py
+.DS_Store
 contrib/pyinstaller/
 Electrum.egg-info/
 gui/qt/icons_rc.py
@@ -17,15 +18,12 @@ env/
 .tox/
 .buildozer/
 bin/
-/app.fil
-contrib/build-wine/tmp
 
 # tox files
 .cache/
 .coverage
 
-electrum_data/
-gui/kivy/theming/light-0.png
-gui/kivy/theming/light.atlas
-Electrum_SnowGem.egg-info/
-.pytest_cache
+# User-specific stuff:
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/dictionaries

@@ -3,7 +3,7 @@ from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
-from electrum_zcash_gui.kivy.i18n import _
+from electrum_gui.kivy.i18n import _
 
 Builder.load_string('''
 <FeeDialog@Popup>
@@ -24,7 +24,7 @@ Builder.load_string('''
                 background_color: (0,0,0,0)
                 bold: True
                 on_release:
-                    root.method  = (root.method + 1) % 2
+                    root.method  = (root.method + 1) % 3
                     root.update_slider()
                     root.update_text()
         BoxLayout:
@@ -74,6 +74,7 @@ class FeeDialog(Factory.Popup):
         Factory.Popup.__init__(self)
         self.app = app
         self.config = config
+        self.fee_rate = self.config.fee_per_kb()
         self.callback = callback
         mempool = self.config.use_mempool_fees()
         dynfees = self.config.is_dynfee()
@@ -117,7 +118,7 @@ class FeeDialog(Factory.Popup):
         value = int(self.ids.slider.value)
         dynfees, mempool = self.get_method()
         self.config.set_key('dynamic_fees', dynfees, False)
-        self.config.set_key('mempool_fees', False, False)
+        self.config.set_key('mempool_fees', mempool, False)
         if dynfees:
             if mempool:
                 self.config.set_key('depth_level', value, True)

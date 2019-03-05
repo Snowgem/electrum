@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- mode: python -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2016  The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
@@ -27,14 +27,14 @@
 import threading
 
 from PyQt5.Qt import QVBoxLayout, QLabel
-from electrum_zcash_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
-from electrum_zcash_gui.qt.util import *
+from electrum_gui.qt.password_dialog import PasswordDialog, PW_PASSPHRASE
+from electrum_gui.qt.util import *
 
-from electrum_zcash.i18n import _
-from electrum_zcash.util import PrintError
+from electrum.i18n import _
+from electrum.util import PrintError
 
 # The trickiest thing about this handler was getting windows properly
-# parented on macOS.
+# parented on MacOSX.
 class QtHandlerBase(QObject, PrintError):
     '''An interface between the GUI (here, QT) and the device handling
     logic for handling I/O.'''
@@ -172,9 +172,9 @@ class QtHandlerBase(QObject, PrintError):
 
 
 
-from electrum_zcash.plugins import hook
-from electrum_zcash.util import UserCancelled
-from electrum_zcash_gui.qt.main_window import StatusBarButton
+from electrum.plugins import hook
+from electrum.util import UserCancelled
+from electrum_gui.qt.main_window import StatusBarButton
 
 class QtPluginBase(object):
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2011 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -29,12 +29,14 @@ import hmac
 import os
 import json
 
+import struct
 import ecdsa
 import pyaes
 
 from .util import bfh, bh2u, to_string, BitcoinException
 from . import version
 from .util import print_error, InvalidPassword, assert_bytes, to_bytes, inv_dict
+from . import segwit_addr
 from . import constants
 
 HDR_LEN = 1487
@@ -155,8 +157,7 @@ def rev_hex(s):
 
 
 def int_to_hex(i, length=1):
-    if not isinstance(i, int):
-        raise TypeError('{} instead of int'.format(i))
+    assert isinstance(i, int)
     if i < 0:
         # two's complement
         i = pow(256, length) + i
@@ -178,11 +179,11 @@ def var_int(i):
 
 
 def op_push(i):
-    if i<0x4c:  # OP_PUSHDATA1
+    if i<0x4c:
         return int_to_hex(i)
-    elif i<=0xff:
+    elif i<0xff:
         return '4c' + int_to_hex(i)
-    elif i<=0xffff:
+    elif i<0xffff:
         return '4d' + int_to_hex(i,2)
     else:
         return '4e' + int_to_hex(i,4)
@@ -190,6 +191,81 @@ def op_push(i):
 def push_script(x):
     return op_push(len(x)//2) + x
 
+# ZCASH specific utils methods
+# https://github.com/zcash/zcash/blob/master/qa/rpc-tests/test_framework/mininode.py
+
+hash_to_str = lambda x: bytes(reversed(x)).hex()
+str_to_hash = lambda x: bytes(reversed(bytes.fromhex(x)))
+
+def read_vector_size(f):
+    nit = struct.unpack("<B", f.read(1))[0]
+    if nit == 253:
+        return struct.unpack("<H", f.read(2))[0]
+    elif nit == 254:
+        return struct.unpack("<I", f.read(4))[0]
+    elif nit == 255:
+        return struct.unpack("<Q", f.read(8))[0]
+    return nit
+
+def ser_char_vector(l):
+    if l is None:
+        l = b''
+    if len(l) < 253:
+        r = struct.pack("<B", len(l))
+    elif len(l) < 0x10000:
+        r = struct.pack("<B", 253) + struct.pack("<H", len(l))
+    elif len(l) < 0x100000000:
+        r = struct.pack("<B", 254) + struct.pack("<I", len(l))
+    else:
+        r = struct.pack("<B", 255) + struct.pack("<Q", len(l))
+    r += bytes(l)
+    return r
+
+
+def deser_char_vector(f):
+    nit = struct.unpack("<B", f.read(1))[0]
+    if nit == 253:
+        nit = struct.unpack("<H", f.read(2))[0]
+    elif nit == 254:
+        nit = struct.unpack("<I", f.read(4))[0]
+    elif nit == 255:
+        nit = struct.unpack("<Q", f.read(8))[0]
+    r = []
+    for i in range(nit):
+        t = struct.unpack("<B", f.read(1))[0]
+        r.append(t)
+    return r
+
+def vector_from_bytes(s):
+    return [v for v in s]
+
+
+def deser_uint256(f):
+    r = 0
+    for i in range(8):
+        t = struct.unpack("<I", f.read(4))[0]
+        r += t << (i * 32)
+    return r
+
+
+def uint256_from_bytes(s):
+    r = 0
+    t = struct.unpack("<IIIIIIII", s[:32])
+    for i in range(8):
+        r += t[i] << (i * 32)
+    return r
+
+
+def ser_uint256(u):
+    if isinstance(u, str):
+        u = int(u, 16)
+    if u is None:
+        u = 0
+    rs = b''
+    for i in range(8):
+        rs += struct.pack("<I", u & 0xFFFFFFFF)
+        u >>= 32
+    return rs
 def sha256(x):
     x = to_bytes(x, 'utf8')
     return bytes(hashlib.sha256(x).digest())
@@ -236,6 +312,10 @@ def seed_type(x):
         return 'old'
     elif is_new_seed(x):
         return 'standard'
+    elif is_new_seed(x, version.SEED_PREFIX_SW):
+        return 'segwit'
+    elif is_new_seed(x, version.SEED_PREFIX_2FA):
+        return '2fa'
     return ''
 
 is_seed = lambda x: bool(seed_type(x))
@@ -274,7 +354,8 @@ def hash_160(public_key):
 
 
 def hash160_to_b58_address(h160, addrtype):
-    s = addrtype
+    s = bytes([addrtype[0]])
+    s += bytes([addrtype[1]])
     s += h160
     return base_encode(s+Hash(s)[0:4], base=58)
 
@@ -282,7 +363,7 @@ def hash160_to_b58_address(h160, addrtype):
 def b58_address_to_hash160(addr):
     addr = to_bytes(addr, 'ascii')
     _bytes = base_decode(addr, 26, base=58)
-    return _bytes[0:2], _bytes[2:22]
+    return [_bytes[0], _bytes[1]], _bytes[2:22]
 
 
 def hash160_to_p2pkh(h160, *, net=None):
@@ -298,15 +379,44 @@ def hash160_to_p2sh(h160, *, net=None):
 def public_key_to_p2pkh(public_key):
     return hash160_to_p2pkh(hash_160(public_key))
 
+def hash_to_segwit_addr(h, witver, *, net=None):
+    if net is None:
+        net = constants.net
+    return segwit_addr.encode(net.SEGWIT_HRP, witver, h)
+
+def public_key_to_p2wpkh(public_key):
+    return hash_to_segwit_addr(hash_160(public_key), witver=0)
+
+def script_to_p2wsh(script):
+    return hash_to_segwit_addr(sha256(bfh(script)), witver=0)
+
+def p2wpkh_nested_script(pubkey):
+    pkh = bh2u(hash_160(bfh(pubkey)))
+    return '00' + push_script(pkh)
+
+def p2wsh_nested_script(witness_script):
+    wsh = bh2u(sha256(bfh(witness_script)))
+    return '00' + push_script(wsh)
+
 def pubkey_to_address(txin_type, pubkey):
     if txin_type == 'p2pkh':
         return public_key_to_p2pkh(bfh(pubkey))
+    elif txin_type == 'p2wpkh':
+        return public_key_to_p2wpkh(bfh(pubkey))
+    elif txin_type == 'p2wpkh-p2sh':
+        scriptSig = p2wpkh_nested_script(pubkey)
+        return hash160_to_p2sh(hash_160(bfh(scriptSig)))
     else:
         raise NotImplementedError(txin_type)
 
 def redeem_script_to_address(txin_type, redeem_script):
     if txin_type == 'p2sh':
         return hash160_to_p2sh(hash_160(bfh(redeem_script)))
+    elif txin_type == 'p2wsh':
+        return script_to_p2wsh(redeem_script)
+    elif txin_type == 'p2wsh-p2sh':
+        scriptSig = p2wsh_nested_script(redeem_script)
+        return hash160_to_p2sh(hash_160(bfh(scriptSig)))
     else:
         raise NotImplementedError(txin_type)
 
@@ -320,6 +430,13 @@ def script_to_address(script, *, net=None):
 def address_to_script(addr, *, net=None):
     if net is None:
         net = constants.net
+    witver, witprog = segwit_addr.decode(net.SEGWIT_HRP, addr)
+    if witprog is not None:
+        assert (0 <= witver <= 16)
+        OP_n = witver + 0x50 if witver > 0 else 0
+        script = bh2u(bytes([OP_n]))
+        script += push_script(bh2u(bytes(witprog)))
+        return script
     addrtype, hash_160 = b58_address_to_hash160(addr)
     if addrtype == net.ADDRTYPE_P2PKH:
         script = '76a9'                                      # op_dup, op_hash_160
@@ -356,8 +473,7 @@ assert len(__b43chars) == 43
 def base_encode(v, base):
     """ encode v, which is a string of bytes, to base58."""
     assert_bytes(v)
-    if base not in (58, 43):
-        raise ValueError('not supported base: {}'.format(base))
+    assert base in (58, 43)
     chars = __b58chars
     if base == 43:
         chars = __b43chars
@@ -370,7 +486,7 @@ def base_encode(v, base):
         result.append(chars[mod])
         long_value = div
     result.append(chars[long_value])
-    # Bitcoin does a little leading-zero-compression:
+    # SnowGem does a little leading-zero-compression:
     # leading 0-bytes in the input become leading-1s
     nPad = 0
     for c in v:
@@ -387,8 +503,7 @@ def base_decode(v, length, base):
     """ decode v into a string of len bytes."""
     # assert_bytes(v)
     v = to_bytes(v, 'ascii')
-    if base not in (58, 43):
-        raise ValueError('not supported base: {}'.format(base))
+    assert base in (58, 43)
     chars = __b58chars
     if base == 43:
         chars = __b43chars
@@ -438,13 +553,16 @@ def DecodeBase58Check(psz):
         return key
 
 
-
 # backwards compat
 # extended WIF for segwit (used in 3.0.x; but still used internally)
 # the keys in this dict should be a superset of what Imported Wallets can import
 SCRIPT_TYPES = {
     'p2pkh':0,
+    'p2wpkh':1,
+    'p2wpkh-p2sh':2,
     'p2sh':5,
+    'p2wsh':6,
+    'p2wsh-p2sh':7
 }
 
 
@@ -469,8 +587,7 @@ def deserialize_privkey(key):
     txin_type = None
     if ':' in key:
         txin_type, key = key.split(sep=':', maxsplit=1)
-        if txin_type not in SCRIPT_TYPES:
-            raise BitcoinException('unknown script type: {}'.format(txin_type))
+        assert txin_type in SCRIPT_TYPES
     try:
         vch = DecodeBase58Check(key)
     except BaseException:
@@ -482,12 +599,9 @@ def deserialize_privkey(key):
         # keys exported in version 3.0.x encoded script type in first byte
         txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - constants.net.WIF_PREFIX]
     else:
-        # all other keys must have a fixed first byte
-        if vch[0] != constants.net.WIF_PREFIX:
-            raise BitcoinException('invalid prefix ({}) for WIF key'.format(vch[0]))
+        assert vch[0] == constants.net.WIF_PREFIX
 
-    if len(vch) not in [33, 34]:
-        raise BitcoinException('invalid vch len for WIF key: {}'.format(len(vch)))
+    assert len(vch) in [33, 34]
     compressed = len(vch) == 34
     return txin_type, vch[1:33], compressed
 
@@ -519,6 +633,13 @@ def address_from_private_key(sec):
     public_key = public_key_from_private_key(privkey, compressed)
     return pubkey_to_address(txin_type, public_key)
 
+def is_segwit_address(addr):
+    try:
+        witver, witprog = segwit_addr.decode(constants.net.SEGWIT_HRP, addr)
+    except Exception as e:
+        return False
+    return witprog is not None
+
 def is_b58_address(addr):
     try:
         addrtype, h = b58_address_to_hash160(addr)
@@ -529,7 +650,7 @@ def is_b58_address(addr):
     return addr == hash160_to_b58_address(h, addrtype)
 
 def is_address(addr):
-    return is_b58_address(addr)
+    return is_segwit_address(addr) or is_b58_address(addr)
 
 
 def is_private_key(key):
@@ -563,7 +684,7 @@ from ecdsa.util import string_to_number, number_to_string
 
 def msg_magic(message):
     length = bfh(var_int(len(message)))
-    return b"\x18SnowGem Signed Message:\n" + length + message
+    return b"\x18Bitcoin Signed Message:\n" + length + message
 
 
 def verify_message(address, sig, message):
@@ -573,7 +694,7 @@ def verify_message(address, sig, message):
         public_key, compressed = pubkey_from_signature(sig, h)
         # check public key using the address
         pubkey = point_to_ser(public_key.pubkey.point, compressed)
-        for txin_type in ['p2pkh']:
+        for txin_type in ['p2pkh','p2wpkh','p2wpkh-p2sh']:
             addr = pubkey_to_address(txin_type, bh2u(pubkey))
             if address == addr:
                 break
@@ -884,7 +1005,6 @@ def deserialize_xkey(xkey, prv, *, net=None):
     return xtype, depth, fingerprint, child_number, c, K_or_k
 
 
-
 def deserialize_xpub(xkey, *, net=None):
     return deserialize_xkey(xkey, False, net=net)
 
@@ -918,7 +1038,7 @@ def xpub_from_xprv(xprv):
 
 
 def bip32_root(seed, xtype):
-    I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
+    I = hmac.new(b"SnowGem seed", seed, hashlib.sha512).digest()
     master_k = I[0:32]
     master_c = I[32:]
     K, cK = get_pubkeys_from_secret(master_k)
@@ -933,8 +1053,7 @@ def xpub_from_pubkey(xtype, cK):
 
 
 def bip32_derivation(s):
-    if not s.startswith('m/'):
-        raise ValueError('invalid bip32 derivation path: {}'.format(s))
+    assert s.startswith('m/')
     s = s[2:]
     for n in s.split('/'):
         if n == '': continue
@@ -949,9 +1068,7 @@ def is_bip32_derivation(x):
         return False
 
 def bip32_private_derivation(xprv, branch, sequence):
-    if not sequence.startswith(branch):
-        raise ValueError('incompatible branch ({}) and sequence ({})'
-                         .format(branch, sequence))
+    assert sequence.startswith(branch)
     if branch == sequence:
         return xprv, xpub_from_xprv(xprv)
     xtype, depth, fingerprint, child_number, c, k = deserialize_xprv(xprv)
@@ -973,9 +1090,7 @@ def bip32_private_derivation(xprv, branch, sequence):
 
 def bip32_public_derivation(xpub, branch, sequence):
     xtype, depth, fingerprint, child_number, c, cK = deserialize_xpub(xpub)
-    if not sequence.startswith(branch):
-        raise ValueError('incompatible branch ({}) and sequence ({})'
-                         .format(branch, sequence))
+    assert sequence.startswith(branch)
     sequence = sequence[len(branch):]
     for n in sequence.split('/'):
         if n == '': continue

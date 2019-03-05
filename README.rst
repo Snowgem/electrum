@@ -1,4 +1,4 @@
-Electrum-SnowGem - Lightweight SnowGem client
+Electrum - Lightweight SnowGem client
 =====================================
 
 ::
@@ -6,12 +6,18 @@ Electrum-SnowGem - Lightweight SnowGem client
   Licence: MIT Licence
   Author: Thomas Voegtlin
   Language: Python
-  Homepage: https://github.com/Snowgem/electrum
+  Homepage: https://electrum.org/
 
 
-.. image:: https://github.com/Snowgem/electrum.svg?branch=master
-    :target: https://github.com/Snowgem/electrum
+.. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
+    :target: https://travis-ci.org/spesmilo/electrum
     :alt: Build Status
+.. image:: https://coveralls.io/repos/github/spesmilo/electrum/badge.svg?branch=master
+    :target: https://coveralls.io/github/spesmilo/electrum?branch=master
+    :alt: Test coverage statistics
+.. image:: https://img.shields.io/badge/help-translating-blue.svg
+    :target: https://crowdin.com/project/electrum
+    :alt: Help translating Electrum online
 
 
 
@@ -35,12 +41,10 @@ directory. To run Electrum from its root directory, just do::
 You can also install Electrum on your system, by running this command::
 
     sudo apt-get install python3-setuptools
-    pip3 install .[full]
+    python3 setup.py install
 
 This will download and install the Python dependencies used by
 Electrum, instead of using the 'packages' directory.
-The 'full' extra contains some optional dependencies that we think
-are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
 before you can run Electrum. Read the next section, "Development
@@ -51,14 +55,14 @@ Version".
 Development version
 ===================
 
-Check out the code from GitHub::
+Check out the code from Github::
 
-    git clone git://github.com/Snowgem/electrum.git
+    git clone git://github.com/spesmilo/electrum.git
     cd electrum
 
 Run install (this should install dependencies)::
 
-    pip3 install .[full]
+    python3 setup.py install
 
 Compile the icons file for Qt::
 
@@ -87,6 +91,17 @@ To create binaries, create the 'packages' directory::
     ./contrib/make_packages
 
 This directory contains the python dependencies used by Electrum.
+
+Mac OS X / macOS
+--------
+
+See `contrib/build-osx/`.
+
+Windows
+-------
+
+See `contrib/build-wine/`.
+
 
 Android
 -------

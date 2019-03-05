@@ -1,4 +1,4 @@
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2012 thomasv@ecdsa.org
 #
 # Permission is hereby granted, free of charge, to any person
@@ -22,12 +22,19 @@
 # SOFTWARE.
 import os
 import threading
+import struct
+from io import BytesIO
 from time import sleep
-
 from . import util
 from . import bitcoin
 from . import constants
 from .bitcoin import *
+import base64
+
+from .equihash import is_gbp_valid
+import logging
+logging.basicConfig(level=logging.INFO)
+
 
 CHUNK_LEN = 100
 
@@ -84,6 +91,9 @@ def deserialize_header(s, height):
     h['solution'] = hash_encode(s[143:])
     h['block_height'] = height
     return h
+
+def sha256_header(header):
+    return uint256_from_bytes(Hash(serialize_header(header)))
 
 def hash_header(header):
     if header is None:
@@ -189,6 +199,17 @@ class Blockchain(util.PrintError):
         else:
             self._size = 0
 
+    def verify_header(self, header, prev_hash, target):
+        _hash = hash_header(header)
+        if prev_hash != header.get('prev_block_hash'):
+            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        if constants.net.TESTNET:
+            return
+        bits = self.target_to_bits(target)
+        # if bits != header.get('bits'):
+        #     raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        # if int('0x' + _hash, 16) > target:
+        #     raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def calculate_size(self, checkpoint, size_in_bytes):
         # Post-fork
@@ -210,18 +231,6 @@ class Blockchain(util.PrintError):
             peb = size_in_bytes // get_header_size(constants.net.EQUIHASH_FORK_HEIGHT)
 
         return pob + peb
-
-    def verify_header(self, header, prev_hash, target):
-        _hash = hash_header(header)
-        if prev_hash != header.get('prev_block_hash'):
-            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        if constants.net.TESTNET:
-            return
-        bits = self.target_to_bits(target)
-        # if bits != header.get('bits'):
-        #     raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        # if int('0x' + _hash, 16) > target:
-        #     raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def verify_chunk(self, height, data):
         size = len(data)
@@ -298,8 +307,7 @@ class Blockchain(util.PrintError):
         self._size = parent._size; parent._size = parent_branch_size
         # move files
         for b in blockchains.values():
-            if b in [self, parent]:
-                continue
+            if b in [self, parent]: continue
             if b.old_path != b.path():
                 self.print_error("renaming", b.old_path, b.path())
                 os.rename(b.old_path, b.path())
@@ -400,6 +408,9 @@ class Blockchain(util.PrintError):
         median.sort()
         return median[len(median)//2];
 
+    def hash_header(self, header):
+        return hash_header(header)
+		
     def get_target(self, height, chunk_headers=None):
         if chunk_headers is None or chunk_headers['empty']:
             chunk_empty = True

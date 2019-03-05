@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2015 kyuupichan@gmail
 #
 # Permission is hereby granted, free of charge, to any person
@@ -73,7 +73,8 @@ Bucket = namedtuple('Bucket',
                      'weight',      # as in BIP-141
                      'value',       # in satoshis
                      'coins',       # UTXOs
-                     'min_height']) # min block height where a coin was confirmed
+                     'min_height',  # min block height where a coin was confirmed
+                     'witness'])    # whether any coin uses segwit
 
 def strip_unneeded(bkts, sufficient_funds):
     '''Remove buckets that are unnecessary in achieving the spend amount'''
@@ -98,11 +99,14 @@ class CoinChooserBase(PrintError):
             buckets[key].append(coin)
 
         def make_Bucket(desc, coins):
-            weight = sum(Transaction.estimated_input_weight(coin)
+            witness = any(Transaction.is_segwit_input(coin) for coin in coins)
+            # note that we're guessing whether the tx uses segwit based
+            # on this single bucket
+            weight = sum(Transaction.estimated_input_weight(coin, witness)
                          for coin in coins)
             value = sum(coin['value'] for coin in coins)
             min_height = min(coin['height'] for coin in coins)
-            return Bucket(desc, weight, value, coins, min_height)
+            return Bucket(desc, weight, value, coins, min_height, witness)
 
         return list(map(make_Bucket, buckets.keys(), buckets.values()))
 
@@ -114,7 +118,7 @@ class CoinChooserBase(PrintError):
     def change_amounts(self, tx, count, fee_estimator, dust_threshold):
         # Break change up if bigger than max_change
         output_amounts = [o[2] for o in tx.outputs()]
-        # Don't split change of less than 0.02 BTC
+        # Don't split change of less than 0.02 XSG
         max_change = max(max(output_amounts) * 1.25, 0.02 * COIN)
 
         # Use N change outputs
@@ -195,12 +199,12 @@ class CoinChooserBase(PrintError):
         utxos = [c['prevout_hash'] + str(c['prevout_n']) for c in coins]
         self.p = PRNG(''.join(sorted(utxos)))
 
-        # Copy the outputs so when adding change we don't modify "outputs"
+        # Copy the ouputs so when adding change we don't modify "outputs"
         tx = Transaction.from_io([], outputs[:])
         # Weight of the transaction with no inputs and no change
-        # Note: this will use legacy tx serialization. The only side effect
-        # should be that the marker and flag are excluded, which is
-        # compensated in get_tx_weight()
+        # Note: this will use legacy tx serialization as the need for "segwit"
+        # would be detected from inputs. The only side effect should be that the
+        # marker and flag are excluded, which is compensated in get_tx_weight()
         base_weight = tx.estimated_weight()
         spent_amount = tx.output_value()
 
@@ -209,6 +213,16 @@ class CoinChooserBase(PrintError):
 
         def get_tx_weight(buckets):
             total_weight = base_weight + sum(bucket.weight for bucket in buckets)
+            is_segwit_tx = any(bucket.witness for bucket in buckets)
+            if is_segwit_tx:
+                total_weight += 2  # marker and flag
+                # non-segwit inputs were previously assumed to have
+                # a witness of '' instead of '00' (hex)
+                # note that mixed legacy/segwit buckets are already ok
+                num_legacy_inputs = sum((not bucket.witness) * len(bucket.coins)
+                                        for bucket in buckets)
+                total_weight += num_legacy_inputs
+
             return total_weight
 
         def sufficient_funds(buckets):
@@ -354,7 +368,7 @@ class CoinChooserPrivacy(CoinChooserRandom):
                 badness += (min_change - change) / (min_change + 10000)
             elif change > max_change:
                 badness += (change - max_change) / (max_change + 10000)
-                # Penalize large change; 5 BTC excess ~= using 1 more input
+                # Penalize large change; 5 XSG excess ~= using 1 more input
                 badness += change / (COIN * 5)
             return badness
 

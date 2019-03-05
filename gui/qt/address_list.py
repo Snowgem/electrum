@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -24,10 +24,10 @@
 # SOFTWARE.
 import webbrowser
 
-from electrum_zcash.i18n import _
-from electrum_zcash.util import block_explorer_URL
-from electrum_zcash.plugins import run_hook
-from electrum_zcash.bitcoin import is_address
+from electrum.i18n import _
+from electrum.util import block_explorer_URL
+from electrum.plugins import run_hook
+from electrum.bitcoin import is_address
 
 from .util import *
 
@@ -111,16 +111,11 @@ class AddressList(MyTreeWidget):
                 rate = fx.exchange_rate()
                 fiat_balance = fx.value_str(balance, rate)
                 address_item = SortableTreeWidgetItem(['', address, label, balance_text, fiat_balance, "%d"%num])
-                for i in range(6):
-                    if i > 2:
-                        address_item.setTextAlignment(i, Qt.AlignRight)
-                    address_item.setFont(i, QFont(MONOSPACE_FONT))
+                address_item.setTextAlignment(4, Qt.AlignRight)
+                address_item.setFont(4, QFont(MONOSPACE_FONT))
             else:
                 address_item = SortableTreeWidgetItem(['', address, label, balance_text, "%d"%num])
-                for i in range(5):
-                    if i > 2:
-                        address_item.setTextAlignment(i, Qt.AlignRight)
-                    address_item.setFont(i, QFont(MONOSPACE_FONT))
+            address_item.setFont(3, QFont(MONOSPACE_FONT))
             if self.wallet.is_change(address):
                 address_item.setText(0, _('change'))
                 address_item.setBackground(0, ColorScheme.YELLOW.as_color(True))
@@ -138,7 +133,7 @@ class AddressList(MyTreeWidget):
                 self.setCurrentItem(address_item)
 
     def create_menu(self, position):
-        from electrum_zcash.wallet import Multisig_Wallet
+        from electrum.wallet import Multisig_Wallet
         is_multisig = isinstance(self.wallet, Multisig_Wallet)
         can_delete = self.wallet.can_delete_address()
         selected = self.selectedItems()

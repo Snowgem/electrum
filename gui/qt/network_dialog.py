@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2012 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -30,10 +30,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import PyQt5.QtCore as QtCore
 
-from electrum_zcash.i18n import _
-from electrum_zcash import constants
-from electrum_zcash.util import print_error
-from electrum_zcash.network import serialize_server, deserialize_server
+from electrum.i18n import _
+from electrum import constants
+from electrum.util import print_error
+from electrum.network import serialize_server, deserialize_server
 
 from .util import *
 
@@ -281,7 +281,7 @@ class NetworkChoiceLayout(object):
         # Blockchain Tab
         grid = QGridLayout(blockchain_tab)
         msg =  ' '.join([
-            _("Electrum connects to several nodes in order to download block headers and find out the longest blockchain."),
+            _("SnowGem Electrum connects to several nodes in order to download block headers and find out the longest blockchain."),
             _("This blockchain is used to verify the transactions sent by your transaction server.")
         ])
         self.status_label = QLabel('')
@@ -290,7 +290,7 @@ class NetworkChoiceLayout(object):
         grid.addWidget(HelpButton(msg), 0, 4)
 
         self.server_label = QLabel('')
-        msg = _("Electrum sends your wallet addresses to a single server, in order to receive your transaction history.")
+        msg = _("SnowGem Electrum sends your wallet addresses to a single server, in order to receive your transaction history.")
         grid.addWidget(QLabel(_('Server') + ':'), 1, 0)
         grid.addWidget(self.server_label, 1, 1, 1, 3)
         grid.addWidget(HelpButton(msg), 1, 4)

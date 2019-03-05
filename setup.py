@@ -27,7 +27,7 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
     parser.add_argument('--root=', dest='root_path', metavar='dir', default='/')
     opts, _ = parser.parse_known_args(sys.argv[1:])
     usr_share = os.path.join(sys.prefix, "share")
-    icons_dirname = 'pixmaps'
+    icons_dirname = 'pixmaps/'
     if not os.access(opts.root_path + usr_share, os.W_OK) and \
        not os.access(opts.root_path, os.W_OK):
         icons_dirname = 'icons'
@@ -44,36 +44,37 @@ setup(
     name="Electrum",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
-    extras_require={
-        'full': requirements_hw + ['pycryptodomex'],
-    },
     packages=[
-        'electrum_zcash',
-        'electrum_zcash_gui',
-        'electrum_zcash_gui.qt',
-        'electrum_zcash_plugins',
-        'electrum_zcash_plugins.audio_modem',
-        'electrum_zcash_plugins.cosigner_pool',
-        'electrum_zcash_plugins.email_requests',
-        'electrum_zcash_plugins.hw_wallet',
-        'electrum_zcash_plugins.keepkey',
-        'electrum_zcash_plugins.labels',
-        'electrum_zcash_plugins.ledger',
-        'electrum_zcash_plugins.trezor',
-        'electrum_zcash_plugins.digitalbitbox',
-        'electrum_zcash_plugins.virtualkeyboard',
+        'electrum',
+        'electrum_gui',
+        'electrum_gui.qt',
+        'electrum_plugins',
+        'electrum_plugins.audio_modem',
+        'electrum_plugins.cosigner_pool',
+        'electrum_plugins.email_requests',
+        'electrum_plugins.greenaddress_instant',
+        'electrum_plugins.hw_wallet',
+        'electrum_plugins.keepkey',
+        'electrum_plugins.labels',
+        'electrum_plugins.ledger',
+        'electrum_plugins.trezor',
+        'electrum_plugins.digitalbitbox',
+        'electrum_plugins.trustedcoin',
+        'electrum_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum_zcash': 'lib',
-        'electrum_zcash_gui': 'gui',
-        'electrum_zcash_plugins': 'plugins',
+        'electrum': 'lib',
+        'electrum_gui': 'gui',
+        'electrum_plugins': 'plugins',
     },
     package_data={
-        'electrum_zcash': [
+        'electrum': [
             'servers.json',
             'servers_testnet.json',
-            'servers_regtest.json',
             'currencies.json',
+            'checkpoints.json',
+            'checkpoints_testnet.json',
+            'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
@@ -83,7 +84,12 @@ setup(
     description="Lightweight SnowGem Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
-    license="MIT License",
-    url="https://github.com/Snowgem/electrum",
+    license="MIT Licence",
+    url="https://electrum.org",
     long_description="""Lightweight SnowGem Wallet"""
 )
+
+# Optional modules (not required to run Electrum)
+import pip
+opt_modules = requirements_hw + ['pycryptodomex']
+[ pip.main(['install', m]) for m in opt_modules ]

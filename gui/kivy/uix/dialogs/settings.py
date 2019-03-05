@@ -3,21 +3,21 @@ from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
-from electrum_zcash.util import base_units
-from electrum_zcash.i18n import languages
-from electrum_zcash_gui.kivy.i18n import _
-from electrum_zcash.plugins import run_hook
-from electrum_zcash import coinchooser
+from electrum.util import base_units
+from electrum.i18n import languages
+from electrum_gui.kivy.i18n import _
+from electrum.plugins import run_hook
+from electrum import coinchooser
 
 from .choice_dialog import ChoiceDialog
 
 Builder.load_string('''
 #:import partial functools.partial
-#:import _ electrum_zcash_gui.kivy.i18n._
+#:import _ electrum_gui.kivy.i18n._
 
 <SettingsDialog@Popup>
     id: settings
-    title: _('Electrum Settings')
+    title: _('SnowGem Electrum Settings')
     disable_pin: False
     use_encryption: False
     BoxLayout:
@@ -58,6 +58,16 @@ Builder.load_string('''
                     title: _('Labels Sync') + ': ' + self.status
                     description: _("Save and synchronize your labels.")
                     action: partial(root.plugin_dialog, 'labels', self)
+                CardSeparator
+                SettingsItem:
+                    status: 'ON' if app.use_rbf else 'OFF'
+                    title: _('Replace-by-fee') + ': ' + self.status
+                    description: _("Create replaceable transactions.")
+                    message:
+                        _('If you check this box, your transactions will be marked as non-final,') \
+                        + ' ' + _('and you will have the possiblity, while they are unconfirmed, to replace them with transactions that pays higher fees.') \
+                        + ' ' + _('Note that some merchants do not accept non-final transactions until they are confirmed.')
+                    action: partial(root.boolean_dialog, 'use_rbf', _('Replace by fee'), self.message)
                 CardSeparator
                 SettingsItem:
                     status: _('Yes') if app.use_unconfirmed else _('No')

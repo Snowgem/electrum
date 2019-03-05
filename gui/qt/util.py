@@ -10,18 +10,15 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from electrum_zcash.i18n import _
-from electrum_zcash.util import FileImportFailed, FileExportFailed
-from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
+from electrum.i18n import _
+from electrum.util import FileImportFailed, FileExportFailed
+from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
 
 
 if platform.system() == 'Windows':
-    if platform.release() in ['7', '8', '10']:
-        MONOSPACE_FONT = 'Consolas'
-    else:
-        MONOSPACE_FONT = 'Lucida Console'
+    MONOSPACE_FONT = 'Lucida Console'
 elif platform.system() == 'Darwin':
-    MONOSPACE_FONT = 'Menlo'
+    MONOSPACE_FONT = 'Monaco'
 else:
     MONOSPACE_FONT = 'monospace'
 
@@ -168,21 +165,17 @@ class CancelButton(QPushButton):
         self.clicked.connect(dialog.reject)
 
 class MessageBoxMixin(object):
-    def top_level_window_recurse(self, window=None, test_func=None):
+    def top_level_window_recurse(self, window=None):
         window = window or self
         classes = (WindowModalDialog, QMessageBox)
-        if test_func is None:
-            test_func = lambda x: True
         for n, child in enumerate(window.children()):
-            # Test for visibility as old closed dialogs may not be GC-ed.
-            # Only accept children that confirm to test_func.
-            if isinstance(child, classes) and child.isVisible() \
-                    and test_func(child):
-                return self.top_level_window_recurse(child, test_func=test_func)
+            # Test for visibility as old closed dialogs may not be GC-ed
+            if isinstance(child, classes) and child.isVisible():
+                return self.top_level_window_recurse(child)
         return window
 
-    def top_level_window(self, test_func=None):
-        return self.top_level_window_recurse(test_func)
+    def top_level_window(self):
+        return self.top_level_window_recurse()
 
     def question(self, msg, parent=None, title=None, icon=None):
         Yes, No = QMessageBox.Yes, QMessageBox.No
@@ -399,8 +392,6 @@ class MyTreeWidget(QTreeWidget):
         # extend the syntax for consistency
         self.addChild = self.addTopLevelItem
         self.insertChild = self.insertTopLevelItem
-
-        self.icon_cache = IconCache()
 
         # Control which columns are editable
         self.editor = None
@@ -682,7 +673,7 @@ class ColorScheme:
     dark_scheme = False
 
     GREEN = ColorSchemeItem("#117c11", "#8af296")
-    YELLOW = ColorSchemeItem("#897b2a", "#ffff00")
+    YELLOW = ColorSchemeItem("#ffff00", "#ffff00")
     RED = ColorSchemeItem("#7c1111", "#f18c8c")
     BLUE = ColorSchemeItem("#123b7c", "#8cb3f2")
     DEFAULT = ColorSchemeItem("black", "white")
@@ -786,17 +777,6 @@ class SortableTreeWidgetItem(QTreeWidgetItem):
         except ValueError:
             # If not, we will just do string comparison
             return self.text(column) < other.text(column)
-
-
-class IconCache:
-
-    def __init__(self):
-        self.__cache = {}
-
-    def get(self, file_name):
-        if file_name not in self.__cache:
-            self.__cache[file_name] = QIcon(file_name)
-        return self.__cache[file_name]
 
 
 if __name__ == "__main__":

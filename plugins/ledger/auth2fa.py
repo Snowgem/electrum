@@ -13,11 +13,11 @@ from PyQt5.QtWidgets import *
 
 from btchip.btchip import *
 
-from electrum_zcash.i18n import _
-from electrum_zcash_gui.qt.util import *
-from electrum_zcash.util import print_msg
-from electrum_zcash import constants, bitcoin
-from electrum_zcash_gui.qt.qrcodewidget import QRCodeWidget
+from electrum.i18n import _
+from electrum_gui.qt.util import *
+from electrum.util import print_msg
+from electrum import constants, bitcoin
+from electrum_gui.qt.qrcodewidget import QRCodeWidget
 
 
 DEBUG = False
@@ -32,7 +32,7 @@ helpTxt = [_("Your Ledger Wallet wants to tell you a one-time PIN code.<br><br>"
         _("Waiting for authentication on your mobile phone"),
         _("Transaction accepted by mobile phone. Waiting for confirmation."),
         _("Click Pair button to begin pairing a mobile phone."),
-        _("Scan this QR code with your Ledger Wallet phone app to pair it with this Ledger device.<br>" 
+        _("Scan this QR code with your LedgerWallet phone app to pair it with this Ledger device.<br>" 
             "To complete pairing you will need your security card to answer a challenge." )
         ]
 

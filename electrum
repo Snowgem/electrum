@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- mode: python -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2011 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -25,6 +25,21 @@
 # SOFTWARE.
 import os
 import sys
+
+# from https://gist.github.com/tito/09c42fb4767721dc323d
+import threading
+try:
+    import jnius
+except:
+    jnius = None
+if jnius:
+    orig_thread_run = threading.Thread.run
+    def thread_check_run(*args, **kwargs):
+        try:
+            return orig_thread_run(*args, **kwargs)
+        finally:
+            jnius.detach()
+    threading.Thread.run = thread_check_run
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
@@ -67,24 +82,24 @@ if not is_android:
 # load local module as electrum
 if is_local or is_android:
     import imp
-    imp.load_module('electrum_zcash', *imp.find_module('lib'))
-    imp.load_module('electrum_zcash_gui', *imp.find_module('gui'))
-    imp.load_module('electrum_zcash_plugins', *imp.find_module('plugins'))
+    imp.load_module('electrum', *imp.find_module('lib'))
+    imp.load_module('electrum_gui', *imp.find_module('gui'))
+    imp.load_module('electrum_plugins', *imp.find_module('plugins'))
 
 
 
-from electrum_zcash import bitcoin, util
-from electrum_zcash import constants
-from electrum_zcash import SimpleConfig, Network
-from electrum_zcash.wallet import Wallet, Imported_Wallet
-from electrum_zcash.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
-from electrum_zcash.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
-from electrum_zcash.util import set_verbosity, InvalidPassword
-from electrum_zcash.commands import get_parser, known_commands, Commands, config_variables
-from electrum_zcash import daemon
-from electrum_zcash import keystore
-from electrum_zcash.mnemonic import Mnemonic
-import electrum_zcash_plugins
+from electrum import bitcoin, util
+from electrum import constants
+from electrum import SimpleConfig, Network
+from electrum.wallet import Wallet, Imported_Wallet
+from electrum.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
+from electrum.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
+from electrum.util import set_verbosity, InvalidPassword
+from electrum.commands import get_parser, known_commands, Commands, config_variables
+from electrum import daemon
+from electrum import keystore
+from electrum.mnemonic import Mnemonic
+import electrum_plugins
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -157,7 +172,7 @@ def run_non_RPC(config):
     elif cmdname == 'create':
         password = password_dialog()
         passphrase = config.get('passphrase', '')
-        seed_type = 'standard'
+        seed_type = 'segwit' if config.get('segwit') else 'standard'
         seed = Mnemonic('en').make_seed(seed_type)
         k = keystore.from_seed(seed, passphrase, False)
         storage.put('keystore', k.dump())
@@ -271,7 +286,7 @@ def get_connected_hw_devices(plugins):
 def get_password_for_hw_device_encrypted_storage(plugins):
     devices = get_connected_hw_devices(plugins)
     if len(devices) == 0:
-        print_msg("Error: No connected hw device found. Cannot decrypt this wallet.")
+        print_msg("Error: No connected hw device found. Can not decrypt this wallet.")
         sys.exit(1)
     elif len(devices) > 1:
         print_msg("Warning: multiple hardware devices detected. "
@@ -329,14 +344,14 @@ def run_offline_command(config, config_options, plugins):
     return result
 
 def init_plugins(config, gui_name):
-    from electrum_zcash.plugins import Plugins
+    from electrum.plugins import Plugins
     return Plugins(config, is_local or is_android, gui_name)
 
 
 if __name__ == '__main__':
     # The hook will only be used in the Qt GUI right now
     util.setup_thread_excepthook()
-    # on macOS, delete Process Serial Number arg generated for apps launched in Finder
+    # on osx, delete Process Serial Number arg generated for apps launched in Finder
     sys.argv = list(filter(lambda x: not x.startswith('-psn'), sys.argv))
 
     # old 'help' syntax
@@ -351,7 +366,7 @@ if __name__ == '__main__':
                 sys.argv[i] = sys.stdin.read()
                 break
             else:
-                raise Exception('Cannot get argument from stdin')
+                raise BaseException('Cannot get argument from stdin')
         elif arg == '?':
             sys.argv[i] = input("Enter argument:")
         elif arg == ':':
@@ -401,8 +416,6 @@ if __name__ == '__main__':
 
     if config.get('testnet'):
         constants.set_testnet()
-    elif config.get('regtest'):
-        constants.set_regtest()
 
     # run non-RPC commands separately
     if cmdname in ['create', 'restore']:
@@ -437,7 +450,7 @@ if __name__ == '__main__':
                 d = daemon.Daemon(config, fd, False)
                 d.start()
                 if config.get('websocket_server'):
-                    from electrum_zcash import websockets
+                    from electrum import websockets
                     websockets.WebSocketServer(config, d.network).start()
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')

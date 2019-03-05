@@ -107,16 +107,13 @@ class SimpleConfig(PrintError):
             # Make directory if it does not yet exist.
             if not os.path.exists(path):
                 if os.path.islink(path):
-                    raise Exception('Dangling link: ' + path)
+                    raise BaseException('Dangling link: ' + path)
                 os.mkdir(path)
                 os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
         make_dir(path)
         if self.get('testnet'):
             path = os.path.join(path, 'testnet')
-            make_dir(path)
-        elif self.get('regtest'):
-            path = os.path.join(path, 'regtest')
             make_dir(path)
 
         self.print_error("electrum directory", path)
@@ -193,7 +190,7 @@ class SimpleConfig(PrintError):
         if cur_version > max_version:
             return False
         elif cur_version < min_version:
-            raise Exception(
+            raise BaseException(
                 ('config upgrade: unexpected version %d (should be %d-%d)'
                  % (cur_version, min_version, max_version)))
         else:
@@ -243,7 +240,7 @@ class SimpleConfig(PrintError):
         dirpath = os.path.join(self.path, "wallets")
         if not os.path.exists(dirpath):
             if os.path.islink(dirpath):
-                raise Exception('Dangling link: ' + dirpath)
+                raise BaseException('Dangling link: ' + dirpath)
             os.mkdir(dirpath)
             os.chmod(dirpath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
@@ -416,8 +413,6 @@ class SimpleConfig(PrintError):
         return FEERATE_STATIC_VALUES[i]
 
     def static_fee_index(self, value):
-        if value is None:
-            raise TypeError('static fee cannot be None')
         dist = list(map(lambda x: abs(x - value), FEERATE_STATIC_VALUES))
         return min(range(len(dist)), key=dist.__getitem__)
 
@@ -437,24 +432,27 @@ class SimpleConfig(PrintError):
         return bool(self.get('dynamic_fees', False))
 
     def use_mempool_fees(self):
-        return False
+        return bool(self.get('mempool_fees', False))
 
-    def fee_per_kb(self, dyn=None, mempool=None):
+    def fee_per_kb(self):
         """Returns sat/kvB fee to pay for a txn.
         Note: might return None.
         """
-        if dyn is None:
-            dyn = self.is_dynfee()
-        if mempool is None:
-            mempool = self.use_mempool_fees()
-        if dyn:
-            if mempool:
+        if self.is_dynfee():
+            if self.use_mempool_fees():
                 fee_rate = self.depth_to_fee(self.get_depth_level())
             else:
                 fee_rate = self.eta_to_fee(self.get_fee_level())
         else:
             fee_rate = self.get('fee_per_kb', FEERATE_FALLBACK_STATIC_FEE)
         return fee_rate
+
+    def fee_per_byte(self):
+        """Returns sat/vB fee to pay for a txn.
+        Note: might return None.
+        """
+        fee_per_kb = self.fee_per_kb()
+        return fee_per_kb / 1000 if fee_per_kb is not None else None
 
     def estimate_fee(self, size):
         fee_per_kb = self.fee_per_kb()
@@ -464,7 +462,12 @@ class SimpleConfig(PrintError):
 
     @classmethod
     def estimate_fee_for_feerate(cls, fee_per_kb, size):
-        return round(fee_per_kb * size / 1000)
+        # note: We only allow integer sat/byte values atm.
+        # The GUI for simplicity reasons only displays integer sat/byte,
+        # and for the sake of consistency, we thus only use integer sat/byte in
+        # the backend too.
+        fee_per_byte = int(fee_per_kb / 1000)
+        return int(fee_per_byte * size)
 
     def update_fee_estimates(self, key, value):
         self.fee_estimates[key] = value

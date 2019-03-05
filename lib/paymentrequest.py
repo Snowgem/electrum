@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2014 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -47,8 +47,8 @@ from . import rsakey
 
 from .bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/snowgem-paymentrequest', 'User-Agent': 'Electrum'}
-ACK_HEADERS = {'Content-Type':'application/snowgem-payment','Accept':'application/snowgem-paymentack','User-Agent':'Electrum'}
+REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum'}
+ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -78,7 +78,7 @@ def get_payment_request(url):
             response.raise_for_status()
             # Guard against `snowgem:`-URIs with invalid payment request URLs
             if "Content-Type" not in response.headers \
-            or response.headers["Content-Type"] != "application/snowgem-paymentrequest":
+            or response.headers["Content-Type"] != "application/bitcoin-paymentrequest":
                 data = None
                 error = "payment URL not pointing to a payment request handling server"
             else:
@@ -95,7 +95,7 @@ def get_payment_request(url):
             data = None
             error = "payment URL not pointing to a valid file"
     else:
-        raise Exception("unknown scheme", url)
+        raise BaseException("unknown scheme", url)
     pr = PaymentRequest(data, error)
     return pr
 
@@ -148,7 +148,7 @@ class PaymentRequest:
             self.error = "Error: Cannot parse payment request"
             return False
         if not pr.signature:
-            # the address will be displayed as requestor
+            # the address will be dispayed as requestor
             self.requestor = None
             return True
         if pr.pki_type in ["x509+sha256", "x509+sha1"]:
@@ -340,9 +340,9 @@ def verify_cert_chain(chain):
             x.check_date()
         else:
             if not x.check_ca():
-                raise Exception("ERROR: Supplied CA Certificate Error")
+                raise BaseException("ERROR: Supplied CA Certificate Error")
     if not cert_num > 1:
-        raise Exception("ERROR: CA Certificate Chain Not Provided by Payment Processor")
+        raise BaseException("ERROR: CA Certificate Chain Not Provided by Payment Processor")
     # if the root CA is not supplied, add it to the chain
     ca = x509_chain[cert_num-1]
     if ca.getFingerprint() not in ca_list:
@@ -352,7 +352,7 @@ def verify_cert_chain(chain):
             root = ca_list[f]
             x509_chain.append(root)
         else:
-            raise Exception("Supplied CA Not Found in Trusted CA Store.")
+            raise BaseException("Supplied CA Not Found in Trusted CA Store.")
     # verify the chain of signatures
     cert_num = len(x509_chain)
     for i in range(1, cert_num):
@@ -373,10 +373,10 @@ def verify_cert_chain(chain):
             hashBytes = bytearray(hashlib.sha512(data).digest())
             verify = pubkey.verify(sig, x509.PREFIX_RSA_SHA512 + hashBytes)
         else:
-            raise Exception("Algorithm not supported")
+            raise BaseException("Algorithm not supported")
             util.print_error(self.error, algo.getComponentByName('algorithm'))
         if not verify:
-            raise Exception("Certificate not Signed by Provided CA Certificate Chain")
+            raise BaseException("Certificate not Signed by Provided CA Certificate Chain")
 
     return x509_chain[0], ca
 
@@ -453,11 +453,7 @@ class InvoiceStore(object):
 
     def set_paid(self, pr, txid):
         pr.tx = txid
-        pr_id = pr.get_id()
-        self.paid[txid] = pr_id
-        if pr_id not in self.invoices:
-            # in case the user had deleted it previously
-            self.add(pr)
+        self.paid[txid] = pr.get_id()
 
     def load(self, d):
         for k, v in d.items():
