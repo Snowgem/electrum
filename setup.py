@@ -88,8 +88,3 @@ setup(
     url="https://electrum.org",
     long_description="""Lightweight SnowGem Wallet"""
 )
-
-# Optional modules (not required to run Electrum)
-import pip
-opt_modules = requirements_hw + ['pycryptodomex']
-[ pip.main(['install', m]) for m in opt_modules ]
