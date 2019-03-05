@@ -208,12 +208,12 @@ class ElectrumGui:
             print(_('Error'))
 
     def network_dialog(self):
-        print("use 'electrum-zcash setconfig server/proxy' to change your network settings")
+        print("use 'electrum setconfig server/proxy' to change your network settings")
         return True
 
 
     def settings_dialog(self):
-        print("use 'electrum-zcash setconfig' to change your settings")
+        print("use 'electrum setconfig' to change your settings")
         return True
 
     def password_dialog(self):

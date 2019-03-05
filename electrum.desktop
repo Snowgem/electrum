@@ -7,7 +7,7 @@ Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum %u"
 GenericName[en_US]=SnowGem Wallet
 GenericName=SnowGem Wallet
 Icon=electrum.png
-Name[en_US]=Electrum Bitcoin Wallet
+Name[en_US]=electrum-s.desktop
 Name=Electrum Bitcoin Wallet
 Categories=Finance;Network;
 StartupNotify=false
