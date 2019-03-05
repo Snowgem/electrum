@@ -8,7 +8,7 @@ from electrum import bitcoin
 try:
     addr = sys.argv[1]
 except Exception:
-    print("usage: get_history <bitcoin_address>")
+    print("usage: get_history <bitcoingold_address>")
     sys.exit(1)
 
 n = Network()

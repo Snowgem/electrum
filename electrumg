@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- mode: python -*-
 #
-# Electrum - lightweight Bitcoin client
+# ElectrumG - lightweight BitcoinGold client
 # Copyright (C) 2011 thomasv@gitorious
+# Copyright (C) 2018 support@bitcoingold.org
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -28,7 +29,7 @@ import sys
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 is_bundle = getattr(sys, 'frozen', False)
-is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrum.desktop"))
+is_local = not is_bundle and os.path.exists(os.path.join(script_dir, "electrumg.desktop"))
 is_android = 'ANDROID_DATA' in os.environ
 
 # move this back to gui/kivy/__init.py once plugins are moved
@@ -67,24 +68,24 @@ if not is_android:
 # load local module as electrum
 if is_local or is_android:
     import imp
-    imp.load_module('electrum_zcash', *imp.find_module('lib'))
-    imp.load_module('electrum_zcash_gui', *imp.find_module('gui'))
-    imp.load_module('electrum_zcash_plugins', *imp.find_module('plugins'))
+    imp.load_module('electrum', *imp.find_module('lib'))
+    imp.load_module('electrum_gui', *imp.find_module('gui'))
+    imp.load_module('electrum_plugins', *imp.find_module('plugins'))
 
 
 
-from electrum_zcash import bitcoin, util
-from electrum_zcash import constants
-from electrum_zcash import SimpleConfig, Network
-from electrum_zcash.wallet import Wallet, Imported_Wallet
-from electrum_zcash.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
-from electrum_zcash.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
-from electrum_zcash.util import set_verbosity, InvalidPassword
-from electrum_zcash.commands import get_parser, known_commands, Commands, config_variables
-from electrum_zcash import daemon
-from electrum_zcash import keystore
-from electrum_zcash.mnemonic import Mnemonic
-import electrum_zcash_plugins
+from electrum import bitcoin, util
+from electrum import constants
+from electrum import SimpleConfig, Network
+from electrum.wallet import Wallet, Imported_Wallet
+from electrum.storage import WalletStorage, get_derivation_used_for_hw_device_encryption
+from electrum.util import print_msg, print_stderr, json_encode, json_decode, UserCancelled
+from electrum.util import set_verbosity, InvalidPassword
+from electrum.commands import get_parser, known_commands, Commands, config_variables
+from electrum import daemon
+from electrum import keystore
+from electrum.mnemonic import Mnemonic
+import electrum_plugins
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -157,7 +158,7 @@ def run_non_RPC(config):
     elif cmdname == 'create':
         password = password_dialog()
         passphrase = config.get('passphrase', '')
-        seed_type = 'standard'
+        seed_type = 'segwit' if config.get('segwit') else 'standard'
         seed = Mnemonic('en').make_seed(seed_type)
         k = keystore.from_seed(seed, passphrase, False)
         storage.put('keystore', k.dump())
@@ -178,7 +179,7 @@ def init_daemon(config_options):
     storage = WalletStorage(config.get_wallet_path())
     if not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrumg create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
     if storage.is_encrypted():
         if storage.is_encrypted_with_hw_device():
@@ -216,7 +217,7 @@ def init_cmdline(config_options, server):
 
     if cmd.requires_wallet and not storage.file_exists():
         print_msg("Error: Wallet file not found.")
-        print_msg("Type 'electrum create' to create a new wallet, or provide a path to a wallet with the -w option")
+        print_msg("Type 'electrumg create' to create a new wallet, or provide a path to a wallet with the -w option")
         sys.exit(0)
 
     # important warning
@@ -329,7 +330,7 @@ def run_offline_command(config, config_options, plugins):
     return result
 
 def init_plugins(config, gui_name):
-    from electrum_zcash.plugins import Plugins
+    from electrum.plugins import Plugins
     return Plugins(config, is_local or is_android, gui_name)
 
 
@@ -382,7 +383,7 @@ if __name__ == '__main__':
         config_options['portable'] = True
 
     if config_options.get('portable'):
-        config_options['electrum_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrum_data')
+        config_options['electrumg_path'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'electrumg_data')
 
     # kivy sometimes freezes when we write to sys.stderr
     set_verbosity(config_options.get('verbose') and config_options.get('gui')!='kivy')
@@ -390,7 +391,7 @@ if __name__ == '__main__':
     # check uri
     uri = config_options.get('url')
     if uri:
-        if not uri.startswith('snowgem:'):
+        if not uri.startswith('bitcoingold:'):
             print_stderr('unknown command:', uri)
             sys.exit(1)
         config_options['url'] = uri
@@ -402,6 +403,9 @@ if __name__ == '__main__':
     if config.get('testnet'):
         constants.set_testnet()
     elif config.get('regtest'):
+        constants.set_regtest()
+
+    if config.get('regtest'):
         constants.set_regtest()
 
     # run non-RPC commands separately
@@ -437,7 +441,7 @@ if __name__ == '__main__':
                 d = daemon.Daemon(config, fd, False)
                 d.start()
                 if config.get('websocket_server'):
-                    from electrum_zcash import websockets
+                    from electrum import websockets
                     websockets.WebSocketServer(config, d.network).start()
                 if config.get('requests_dir'):
                     path = os.path.join(config.get('requests_dir'), 'index.html')

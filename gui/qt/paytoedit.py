@@ -24,12 +24,11 @@
 # SOFTWARE.
 
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QLineEdit
 import re
 from decimal import Decimal
 
-from electrum_zcash import bitcoin
-from electrum_zcash.util import bfh
+from electrum import bitcoin
+from electrum.util import bfh
 
 from .qrtextedit import ScanQRTextEdit
 from .completion_text_edit import CompletionTextEdit
@@ -90,7 +89,7 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit):
             return bitcoin.TYPE_SCRIPT, script
 
     def parse_script(self, x):
-        from electrum_zcash.transaction import opcodes, push_script
+        from electrum.transaction import opcodes, push_script
         script = ''
         for word in x.split():
             if word[0:3] == 'OP_':
@@ -127,7 +126,7 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit):
         self.payto_address = None
         if len(lines) == 1:
             data = lines[0]
-            if data.startswith("snowgem:"):
+            if data.startswith("bitcoingold:"):
                 self.scan_f(data)
                 return
             try:
@@ -191,10 +190,9 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit):
         self.update_size()
 
     def update_size(self):
+        lineHeight = QFontMetrics(self.document().defaultFont()).height()
         docHeight = self.document().size().height()
-        lineEditHeight = QLineEdit().sizeHint().height()
-        lineHeight = self.fontMetrics().height()
-        h = lineEditHeight + lineHeight * (docHeight - 1)
+        h = docHeight * lineHeight + 11
         if self.heightMin <= h <= self.heightMax:
             self.setMinimumHeight(h)
             self.setMaximumHeight(h)
@@ -202,7 +200,7 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit):
 
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
-        if data.startswith("snowgem:"):
+        if data.startswith("bitcoingold:"):
             self.scan_f(data)
             # TODO: update fee
 

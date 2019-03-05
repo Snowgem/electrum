@@ -538,7 +538,7 @@ class Commands:
             PR_PAID: 'Paid',
             PR_EXPIRED: 'Expired',
         }
-        out['amount (XSG)'] = format_satoshis(out.get('amount'))
+        out['amount (BTG)'] = format_satoshis(out.get('amount'))
         out['status'] = pr_str[out.get('status', PR_UNKNOWN)]
         return out
 
@@ -750,10 +750,10 @@ config_variables = {
         'requests_dir': 'directory where a bip70 file will be written.',
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.z.cash/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitcoingold: URIs. Example: \"(\'file:///var/www/\',\'https://bitcoingold.org/\')\"',
     },
     'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.z.cash/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitcoingold: URIs. Example: \"(\'file:///var/www/\',\'https://bitcoingold.org/\')\"',
     }
 }
 

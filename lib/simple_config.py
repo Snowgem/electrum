@@ -78,7 +78,7 @@ class SimpleConfig(PrintError):
         self.cmdline_options.pop('config_version', None)
 
         # Set self.path and read the user config
-        self.user_config = {}  # for self.get in electrum_path()
+        self.user_config = {}  # for self.get in electrumg_path()
         self.path = self.electrum_path()
         self.user_config = read_user_config_function(self.path)
         if not self.user_config:
@@ -99,7 +99,7 @@ class SimpleConfig(PrintError):
     def electrum_path(self):
         # Read electrum_path from command line
         # Otherwise use the user's default data directory.
-        path = self.get('electrum_path')
+        path = self.get('electrumg_path')
         if path is None:
             path = self.user_dir()
 
@@ -119,7 +119,7 @@ class SimpleConfig(PrintError):
             path = os.path.join(path, 'regtest')
             make_dir(path)
 
-        self.print_error("electrum directory", path)
+        self.print_error("electrumg directory", path)
         return path
 
     def rename_config_keys(self, config, keypairs, deprecation_warning=False):
@@ -238,7 +238,7 @@ class SimpleConfig(PrintError):
         # default path
         if not os.path.exists(self.path):
             raise FileNotFoundError(
-                _('Electrum datadir does not exist. Was it deleted while running?') + '\n' +
+                _('ElectrumG datadir does not exist. Was it deleted while running?') + '\n' +
                 _('Should be at {}').format(self.path))
         dirpath = os.path.join(self.path, "wallets")
         if not os.path.exists(dirpath):

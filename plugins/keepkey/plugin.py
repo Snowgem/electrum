@@ -1,14 +1,15 @@
 from binascii import hexlify, unhexlify
 
-from electrum_zcash.util import bfh, bh2u
-from electrum_zcash.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                                    TYPE_ADDRESS, TYPE_SCRIPT)
-from electrum_zcash import constants
-from electrum_zcash.i18n import _
-from electrum_zcash.plugins import BasePlugin
-from electrum_zcash.transaction import deserialize, Transaction
-from electrum_zcash.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
-from electrum_zcash.base_wizard import ScriptTypeNotSupported
+from electrum.util import bfh, bh2u
+from electrum.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
+                              TYPE_ADDRESS, TYPE_SCRIPT,
+                              is_segwit_address)
+from electrum import constants
+from electrum.i18n import _
+from electrum.plugins import BasePlugin
+from electrum.transaction import deserialize, Transaction
+from electrum.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
+from electrum.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 
@@ -20,6 +21,9 @@ class KeepKeyCompatibleKeyStore(Hardware_KeyStore):
 
     def get_derivation(self):
         return self.derivation
+
+    def is_segwit(self):
+        return self.derivation.startswith("m/49'/")
 
     def get_client(self, force_pair=True):
         return self.plugin.get_client(self, force_pair)
@@ -44,7 +48,7 @@ class KeepKeyCompatibleKeyStore(Hardware_KeyStore):
         for txin in tx.inputs():
             pubkeys, x_pubkeys = tx.get_sorted_pubkeys(txin)
             tx_hash = txin['prevout_hash']
-            if txin.get('prev_tx') is None:
+            if txin.get('prev_tx') is None and not Transaction.is_segwit_input(txin):
                 raise Exception(_('Offline signing with {} is not supported for legacy inputs.').format(self.device))
             prev_tx[tx_hash] = txin['prev_tx']
             for x_pubkey in x_pubkeys:
@@ -134,7 +138,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "SnowGemTestnet" if constants.net.TESTNET else "SnowGem"
+        return "Testnet" if constants.net.TESTNET else "BitcoinGold"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
@@ -214,8 +218,8 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         self.prev_tx = prev_tx
         self.xpub_path = xpub_path
         client = self.get_client(keystore)
-        inputs = self.tx_inputs(tx, True)
-        outputs = self.tx_outputs(keystore.get_derivation(), tx)
+        inputs = self.tx_inputs(tx, True, keystore.is_segwit())
+        outputs = self.tx_outputs(keystore.get_derivation(), tx, keystore.is_segwit())
         signed_tx = client.sign_tx(self.get_coin_name(), inputs, outputs, lock_time=tx.locktime)[1]
         raw = bh2u(signed_tx)
         tx.update_signatures(raw)
@@ -229,10 +233,11 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         derivation = wallet.keystore.derivation
         address_path = "%s/%d/%d"%(derivation, change, index)
         address_n = client.expand_path(address_path)
-        script_type = self.types.SPENDADDRESS
+        segwit = wallet.keystore.is_segwit()
+        script_type = self.types.SPENDP2SHWITNESS if segwit else self.types.SPENDADDRESS
         client.get_address(self.get_coin_name(), address_n, True, script_type=script_type)
 
-    def tx_inputs(self, tx, for_sig=False):
+    def tx_inputs(self, tx, for_sig=False, segwit=False):
         inputs = []
         for txin in tx.inputs():
             txinputtype = self.types.TxInputType()
@@ -247,7 +252,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                         xpub, s = parse_xpubkey(x_pubkey)
                         xpub_n = self.client_class.expand_path(self.xpub_path[xpub])
                         txinputtype.address_n.extend(xpub_n + s)
-                        txinputtype.script_type = self.types.SPENDADDRESS
+                        txinputtype.script_type = self.types.SPENDP2SHWITNESS if segwit else self.types.SPENDADDRESS
                     else:
                         def f(x_pubkey):
                             if is_xpubkey(x_pubkey):
@@ -263,7 +268,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                             signatures=map(lambda x: bfh(x)[:-1] if x else b'', txin.get('signatures')),
                             m=txin.get('num_sig'),
                         )
-                        script_type = self.types.SPENDMULTISIG
+                        script_type = self.types.SPENDP2SHWITNESS if segwit else self.types.SPENDMULTISIG
                         txinputtype = self.types.TxInputType(
                             script_type=script_type,
                             multisig=multisig
@@ -295,12 +300,12 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
 
         return inputs
 
-    def tx_outputs(self, derivation, tx):
+    def tx_outputs(self, derivation, tx, segwit=False):
 
         def create_output_by_derivation(info):
             index, xpubs, m = info
             if len(xpubs) == 1:
-                script_type = self.types.PAYTOADDRESS
+                script_type = self.types.PAYTOP2SHWITNESS if segwit else self.types.PAYTOADDRESS
                 address_n = self.client_class.expand_path(derivation + "/%d/%d" % index)
                 txoutputtype = self.types.TxOutputType(
                     amount=amount,
@@ -308,7 +313,7 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                     address_n=address_n,
                 )
             else:
-                script_type = self.types.PAYTOMULTISIG
+                script_type = self.types.PAYTOP2SHWITNESS if segwit else self.types.PAYTOMULTISIG
                 address_n = self.client_class.expand_path("/%d/%d" % index)
                 nodes = map(self.ckd_public.deserialize, xpubs)
                 pubkeys = [self.types.HDNodePathType(node=node, address_n=address_n) for node in nodes]
@@ -330,13 +335,16 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
                 txoutputtype.script_type = self.types.PAYTOOPRETURN
                 txoutputtype.op_return_data = address[2:]
             elif _type == TYPE_ADDRESS:
-                addrtype, hash_160 = b58_address_to_hash160(address)
-                if addrtype == constants.net.ADDRTYPE_P2PKH:
-                    txoutputtype.script_type = self.types.PAYTOADDRESS
-                elif addrtype == constants.net.ADDRTYPE_P2SH:
-                    txoutputtype.script_type = self.types.PAYTOSCRIPTHASH
+                if is_segwit_address(address):
+                    txoutputtype.script_type = self.types.PAYTOWITNESS
                 else:
-                    raise Exception('addrtype: ' + str(addrtype))
+                    addrtype, hash_160 = b58_address_to_hash160(address)
+                    if addrtype == constants.net.ADDRTYPE_P2PKH:
+                        txoutputtype.script_type = self.types.PAYTOADDRESS
+                    elif addrtype == constants.net.ADDRTYPE_P2SH:
+                        txoutputtype.script_type = self.types.PAYTOSCRIPTHASH
+                    else:
+                        raise Exception('addrtype: ' + str(addrtype))
                 txoutputtype.address = address
             return txoutputtype
 

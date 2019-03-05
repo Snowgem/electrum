@@ -23,9 +23,11 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from electrum_zcash.i18n import _
-from electrum_zcash.mnemonic import Mnemonic
-import electrum_zcash.old_mnemonic
+from electrum.i18n import _
+from electrum.mnemonic import Mnemonic
+import electrum.old_mnemonic
+from electrum.plugins import run_hook
+
 
 from .util import *
 from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
@@ -68,10 +70,10 @@ class SeedLayout(QVBoxLayout):
                 if b:
                     msg = ' '.join([
                         '<b>' + _('Warning') + ':</b>  ',
-                        _('BIP39 seeds can be imported in Electrum, so that users can access funds locked in other wallets.'),
+                        _('BIP39 seeds can be imported in ElectrumG, so that users can access funds locked in other wallets.'),
                         _('However, we do not generate BIP39 seeds, because they do not meet our safety standard.'),
                         _('BIP39 seeds do not include a version number, which compromises compatibility with future software.'),
-                        _('We do not guarantee that BIP39 imports will always be supported in Electrum.'),
+                        _('We do not guarantee that BIP39 imports will always be supported in ElectrumG.'),
                     ])
                 else:
                     msg = ''
@@ -106,8 +108,7 @@ class SeedLayout(QVBoxLayout):
         hbox = QHBoxLayout()
         if icon:
             logo = QLabel()
-            logo.setPixmap(QPixmap(":icons/seed.png")
-                               .scaledToWidth(64, Qt.SmoothTransformation))
+            logo.setPixmap(QPixmap(":icons/seed.png").scaledToWidth(64))
             logo.setMaximumWidth(60)
             hbox.addWidget(logo)
         hbox.addWidget(self.seed_e)
@@ -136,7 +137,7 @@ class SeedLayout(QVBoxLayout):
 
     def initialize_completer(self):
         english_list = Mnemonic('en').wordlist
-        old_list = electrum_zcash.old_mnemonic.words
+        old_list = electrum.old_mnemonic.words
         self.wordlist = english_list + list(set(old_list) - set(english_list)) #concat both lists
         self.wordlist.sort()
         self.completer = QCompleter(self.wordlist)
@@ -147,14 +148,14 @@ class SeedLayout(QVBoxLayout):
         return ' '.join(text.split())
 
     def on_edit(self):
-        from electrum_zcash.bitcoin import seed_type
+        from electrum.bitcoin import seed_type
         s = self.get_seed()
         b = self.is_seed(s)
         if not self.is_bip39:
             t = seed_type(s)
             label = _('Seed Type') + ': ' + t if t else ''
         else:
-            from electrum_zcash.keystore import bip39_is_checksum_valid
+            from electrum.keystore import bip39_is_checksum_valid
             is_checksum, is_wordlist = bip39_is_checksum_valid(s)
             status = ('checksum: ' + ('ok' if is_checksum else 'failed')) if is_wordlist else 'unknown wordlist'
             label = 'BIP39' + ' (%s)'%status
@@ -189,10 +190,11 @@ class KeysLayout(QVBoxLayout):
 class SeedDialog(WindowModalDialog):
 
     def __init__(self, parent, seed, passphrase):
-        WindowModalDialog.__init__(self, parent, ('Electrum - ' + _('Seed')))
+        WindowModalDialog.__init__(self, parent, ('ElectrumG - ' + _('Seed')))
         self.setMinimumWidth(400)
         vbox = QVBoxLayout(self)
         title =  _("Your wallet generation seed is:")
         slayout = SeedLayout(title=title, seed=seed, msg=True, passphrase=passphrase)
         vbox.addLayout(slayout)
+        run_hook('set_seed', seed, slayout.seed_e)
         vbox.addLayout(Buttons(CloseButton(self)))

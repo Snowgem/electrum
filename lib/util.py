@@ -32,18 +32,18 @@ import hmac
 
 from .i18n import _
 
-
 import urllib.request, urllib.parse, urllib.error
 import queue
+
 
 def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
-base_units = {'XSG':8, 'mXSG':5, 'uXSG':2}
+base_units = {'BTG': 8, 'mBTG': 5, 'uBTG': 2}
 
 def normalize_version(v):
-    return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
+    return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
 class NotEnoughFunds(Exception): pass
 
@@ -106,7 +106,7 @@ class Satoshis(object):
         return 'Satoshis(%d)'%self.value
 
     def __str__(self):
-        return format_satoshis(self.value) + " BTC"
+        return format_satoshis(self.value) + " BTG"
 
 class Fiat(object):
     def __new__(cls, value, ccy):
@@ -313,7 +313,7 @@ def android_data_dir():
     return PythonActivity.mActivity.getFilesDir().getPath() + '/data'
 
 def android_headers_dir():
-    d = android_ext_dir() + '/cash.z.electrum.electrum_zcash'
+    d = android_ext_dir() + '/org.electrumg.electrum'
     if not os.path.exists(d):
         os.mkdir(d)
     return d
@@ -322,7 +322,7 @@ def android_check_data_dir():
     """ if needed, move old directory to sandbox """
     ext_dir = android_ext_dir()
     data_dir = android_data_dir()
-    old_electrum_dir = ext_dir + '/electrum'
+    old_electrum_dir = ext_dir + '/electrumg'
     if not os.path.exists(data_dir) and os.path.exists(old_electrum_dir):
         import shutil
         new_headers_path = android_headers_dir() + '/blockchain_headers'
@@ -403,11 +403,11 @@ def user_dir():
     if 'ANDROID_DATA' in os.environ:
         return android_check_data_dir()
     elif os.name == 'posix':
-        return os.path.join(os.environ["HOME"], ".electrum-xsg")
+        return os.path.join(os.environ["HOME"], ".electrumg")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-xsg")
+        return os.path.join(os.environ["APPDATA"], "ElectrumG")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-xsg")
+        return os.path.join(os.environ["LOCALAPPDATA"], "ElectrumG")
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -505,17 +505,18 @@ def time_difference(distance_in_time, include_seconds):
     else:
         return "over %d years" % (round(distance_in_minutes / 525600))
 
+# TODO: Add more mainnet block explorer
 mainnet_block_explorers = {
-    'snowgem.org': ('https://explorer.snowgem.org/blocks/',
-                        {'tx': 'transactions/', 'addr': 'addresses/'}),
+    'BitcoinGold.org': ('https://explorer.bitcoingold.org/insight/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:/',
                         {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 testnet_block_explorers = {
-    'test.explorer': ('https://test.explorer.snowgem.org/',
-                       {'tx': 'tx/', 'addr': 'address/'}),
-    'system default': ('blockchain:/',
+    'BitcoinGold.org': ('https://test-explorer.bitcoingold.org/insight/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
+    'system default': ('blockchain://000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943/',
                        {'tx': 'tx/', 'addr': 'address/'}),
 }
 
@@ -524,7 +525,7 @@ def block_explorer_info():
     return testnet_block_explorers if constants.net.TESTNET else mainnet_block_explorers
 
 def block_explorer(config):
-    return config.get('block_explorer', 'explorer.snowgem.org')
+    return config.get('block_explorer', 'BitcoinGold.org')
 
 def block_explorer_tuple(config):
     return block_explorer_info().get(block_explorer(config))
@@ -549,12 +550,12 @@ def parse_URI(uri, on_pr=None):
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise Exception("Not a SnowGem address")
+            raise Exception("Not a BitcoinGold address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'snowgem':
-        raise Exception("Not a SnowGem URI")
+    if u.scheme != 'bitcoingold':
+        raise Exception("Not a BitcoinGold URI")
     address = u.path
 
     # python for android fails to parse query
@@ -571,7 +572,7 @@ def parse_URI(uri, on_pr=None):
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise Exception("Invalid SnowGem address:" + address)
+            raise Exception("Invalid BitcoinGold address:" + address)
         out['address'] = address
     if 'amount' in out:
         am = out['amount']
@@ -621,7 +622,7 @@ def create_URI(addr, amount, message):
         query.append('amount=%s'%format_satoshis_plain(amount))
     if message:
         query.append('message=%s'%urllib.parse.quote(message))
-    p = urllib.parse.ParseResult(scheme='snowgem', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='bitcoingold', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urllib.parse.urlunparse(p)
 
 
@@ -809,3 +810,19 @@ def export_meta(meta, fileName):
     except (IOError, os.error) as e:
         traceback.print_exc(file=sys.stderr)
         raise FileExportFailed(e)
+
+
+def download_bootstrap(url, dest_file):
+    import tempfile
+    # Download
+    headers = {'User-Agent': "Mozilla/5.0 (X11; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"}
+    req = urllib.request.Request(url, headers=headers)
+
+    with urllib.request.urlopen(req) as response, tempfile.NamedTemporaryFile() as src_file:
+        import shutil
+        shutil.copyfileobj(response, src_file)
+
+        # Decompress
+        import gzip
+        with gzip.GzipFile(src_file.name, 'rb') as in_file, open(dest_file, 'wb+') as out_file:
+            out_file.write(in_file.read())

@@ -1,8 +1,32 @@
 {
-    "127.0.0.1": {
+    "test-node1.bitcoingold.org": {
         "pruning": "-",
-        "s": "51022",
-        "t": "51021",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "test-node2.bitcoingold.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "test-node3.bitcoingold.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "test-node1.btcgpu.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "test-node2.btcgpu.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "test-node3.btcgpu.org": {
+        "pruning": "-",
+        "s": "50002",
         "version": "1.2"
     }
 }

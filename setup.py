@@ -18,7 +18,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
 version = imp.load_source('version', 'lib/version.py')
 
 if sys.version_info[:3] < (3, 4, 0):
-    sys.exit("Error: Electrum requires Python version >= 3.4.0...")
+    sys.exit("Error: ElectrumG requires Python version >= 3.4.0...")
 
 data_files = []
 
@@ -36,54 +36,52 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['icons/electrum.png'])
+        (os.path.join(usr_share, 'applications/'), ['electrumg.desktop']),
+        (os.path.join(usr_share, icons_dirname), ['icons/electrumg.png'])
     ]
 
 setup(
-    name="Electrum",
+    name="ElectrumG",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
     extras_require={
         'full': requirements_hw + ['pycryptodomex'],
     },
     packages=[
-        'electrum_zcash',
-        'electrum_zcash_gui',
-        'electrum_zcash_gui.qt',
-        'electrum_zcash_plugins',
-        'electrum_zcash_plugins.audio_modem',
-        'electrum_zcash_plugins.cosigner_pool',
-        'electrum_zcash_plugins.email_requests',
-        'electrum_zcash_plugins.hw_wallet',
-        'electrum_zcash_plugins.keepkey',
-        'electrum_zcash_plugins.labels',
-        'electrum_zcash_plugins.ledger',
-        'electrum_zcash_plugins.trezor',
-        'electrum_zcash_plugins.digitalbitbox',
-        'electrum_zcash_plugins.virtualkeyboard',
+        'electrum',
+        'electrum_gui',
+        'electrum_gui.qt',
+        'electrum_plugins',
+        'electrum_plugins.audio_modem',
+        'electrum_plugins.hw_wallet',
+        'electrum_plugins.keepkey',
+        'electrum_plugins.ledger',
+        'electrum_plugins.trezor',
+        'electrum_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum_zcash': 'lib',
-        'electrum_zcash_gui': 'gui',
-        'electrum_zcash_plugins': 'plugins',
+        'electrum': 'lib',
+        'electrum_gui': 'gui',
+        'electrum_plugins': 'plugins',
     },
     package_data={
-        'electrum_zcash': [
+        'electrum': [
             'servers.json',
             'servers_testnet.json',
             'servers_regtest.json',
             'currencies.json',
+            'checkpoints.json',
+            'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum'],
+    scripts=['electrumg'],
     data_files=data_files,
-    description="Lightweight SnowGem Wallet",
-    author="Thomas Voegtlin",
-    author_email="thomasv@electrum.org",
-    license="MIT License",
-    url="https://github.com/Snowgem/electrum",
-    long_description="""Lightweight SnowGem Wallet"""
+    description="Lightweight BitcoinGold Wallet",
+    author="The BitcoinGold Developers",
+    author_email="support@bitcoingold.org",
+    license="MIT Licence",
+    url="https://bitcoingold.org",
+    long_description="""Lightweight BitcoinGold Wallet"""
 )

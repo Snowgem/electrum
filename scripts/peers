@@ -4,6 +4,7 @@ import util
 
 from electrum.network import filter_protocol
 from electrum.blockchain import hash_header
+import bitcoin
 
 peers = util.get_peers()
 peers = filter_protocol(peers, 's')
@@ -11,4 +12,5 @@ peers = filter_protocol(peers, 's')
 results = util.send_request(peers, 'blockchain.headers.subscribe', [])
 
 for n,v in sorted(results.items(), key=lambda x:x[1].get('block_height')):
-    print("%60s"%n, v.get('block_height'), hash_header(v))
+    height = v.get('block_height')
+    print("%60s"%n, height, hash_header(v, height))

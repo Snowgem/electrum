@@ -27,8 +27,8 @@ os.system(cmd)
 
 os.chdir('lib')
 
-crowdin_identifier = 'electrum'
-crowdin_file_name = 'files[electrum-client/messages.pot]'
+crowdin_identifier = 'electrumg'
+crowdin_file_name = 'files[electrumg-client/messages.pot]'
 locale_file_name = 'locale/messages.pot'
 crowdin_api_key = None
 
@@ -55,12 +55,12 @@ if crowdin_api_key:
 
 # Download & unzip
 print('Download translations')
-s = requests.request('GET', 'https://crowdin.com/backend/download/project/' + crowdin_identifier + '.zip').content
+s = requests.request('GET', 'https://crowdin.com/download/project/' + crowdin_identifier + '.zip').content
 zfobj = zipfile.ZipFile(io.BytesIO(s))
 
 print('Unzip translations')
 for name in zfobj.namelist():
-    if not name.startswith('electrum-client/locale'):
+    if not name.startswith('electrumg-client/locale'):
         continue
     if name.endswith('/'):
         if not os.path.exists(name[16:]):

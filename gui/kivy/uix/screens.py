@@ -17,15 +17,15 @@ from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.utils import platform
 
-from electrum_zcash.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
-from electrum_zcash import bitcoin
-from electrum_zcash.util import timestamp_to_datetime
-from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
+from electrum import bitcoin
+from electrum.util import timestamp_to_datetime
+from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from .context_menu import ContextMenu
 
 
-from electrum_zcash_gui.kivy.i18n import _
+from electrum_gui.kivy.i18n import _
 
 
 class CScreen(Factory.Screen):
@@ -170,11 +170,11 @@ class SendScreen(CScreen):
     payment_request = None
 
     def set_URI(self, text):
-        import electrum_zcash
+        import electrum
         try:
-            uri = electrum_zcash.util.parse_URI(text, self.app.on_pr)
+            uri = electrum.util.parse_URI(text, self.app.on_pr)
         except:
-            self.app.show_info(_("Not a SnowGem URI"))
+            self.app.show_info(_("Not a BitcoinGold URI"))
             return
         amount = uri.get('amount')
         self.screen.address = uri.get('address', '')
@@ -212,7 +212,7 @@ class SendScreen(CScreen):
             # it should be already saved
             return
         # save address as invoice
-        from electrum_zcash.paymentrequest import make_unsigned_request, PaymentRequest
+        from electrum.paymentrequest import make_unsigned_request, PaymentRequest
         req = {'address':self.screen.address, 'memo':self.screen.message}
         amount = self.app.get_amount(self.screen.amount) if self.screen.amount else 0
         req['amount'] = amount
@@ -243,10 +243,10 @@ class SendScreen(CScreen):
         else:
             address = str(self.screen.address)
             if not address:
-                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a SnowGem address or a payment request'))
+                self.app.show_error(_('Recipient not specified.') + ' ' + _('Please scan a BitcoinGold address or a payment request'))
                 return
             if not bitcoin.is_address(address):
-                self.app.show_error(_('Invalid SnowGem Address') + ':\n' + address)
+                self.app.show_error(_('Invalid BitcoinGold Address') + ':\n' + address)
                 return
             try:
                 amount = self.app.get_amount(self.screen.amount)
@@ -256,9 +256,14 @@ class SendScreen(CScreen):
             outputs = [(bitcoin.TYPE_ADDRESS, address, amount)]
         message = self.screen.message
         amount = sum(map(lambda x:x[2], outputs))
-        self._do_send(amount, message, outputs)
+        if self.app.electrum_config.get('use_rbf'):
+            from .dialogs.question import Question
+            d = Question(_('Should this transaction be replaceable?'), lambda b: self._do_send(amount, message, outputs, b))
+            d.open()
+        else:
+            self._do_send(amount, message, outputs, False)
 
-    def _do_send(self, amount, message, outputs):
+    def _do_send(self, amount, message, outputs, rbf):
         # make unsigned transaction
         config = self.app.electrum_config
         coins = self.app.wallet.get_spendable_coins(None, config)
@@ -271,6 +276,8 @@ class SendScreen(CScreen):
             traceback.print_exc(file=sys.stdout)
             self.app.show_error(str(e))
             return
+        if rbf:
+            tx.set_rbf(True)
         fee = tx.get_fee()
         msg = [
             _("Amount to be sent") + ": " + self.app.format_amount_and_units(amount),
@@ -340,7 +347,7 @@ class ReceiveScreen(CScreen):
         Clock.schedule_once(lambda dt: self.update_qr())
 
     def get_URI(self):
-        from electrum_zcash.util import create_URI
+        from electrum.util import create_URI
         amount = self.screen.amount
         if amount:
             a, u = self.screen.amount.split()
@@ -356,7 +363,7 @@ class ReceiveScreen(CScreen):
 
     def do_share(self):
         uri = self.get_URI()
-        self.app.do_share(uri, _("Share SnowGem Request"))
+        self.app.do_share(uri, _("Share BitcoinGold Request"))
 
     def do_copy(self):
         uri = self.get_URI()

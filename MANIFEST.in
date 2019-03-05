@@ -1,9 +1,9 @@
 include LICENCE RELEASE-NOTES AUTHORS
 include README.rst
-include electrum.conf.sample
-include electrum.desktop
+include electrumg.conf.sample
+include electrumg.desktop
 include *.py
-include electrum
+include electrumg
 include contrib/requirements/requirements.txt
 include contrib/requirements/requirements-hw.txt
 recursive-include lib *.py
@@ -14,5 +14,4 @@ recursive-include packages cacert.pem
 include icons.qrc
 recursive-include icons *
 recursive-include scripts *
-recursive-include debian *
 

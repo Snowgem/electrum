@@ -10,18 +10,15 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from electrum_zcash.i18n import _
-from electrum_zcash.util import FileImportFailed, FileExportFailed
-from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
+from electrum.i18n import _
+from electrum.util import FileImportFailed, FileExportFailed
+from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
 
 
 if platform.system() == 'Windows':
-    if platform.release() in ['7', '8', '10']:
-        MONOSPACE_FONT = 'Consolas'
-    else:
-        MONOSPACE_FONT = 'Lucida Console'
+    MONOSPACE_FONT = 'Lucida Console'
 elif platform.system() == 'Darwin':
-    MONOSPACE_FONT = 'Menlo'
+    MONOSPACE_FONT = 'Monaco'
 else:
     MONOSPACE_FONT = 'monospace'
 
@@ -216,7 +213,7 @@ class MessageBoxMixin(object):
             d = QMessageBox(icon, title, str(text), buttons, parent)
         d.setWindowModality(Qt.WindowModal)
         d.setDefaultButton(defaultButton)
-        d.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        d.setTextInteractionFlags(Qt.TextBrowserInteraction)
         return d.exec_()
 
 class WindowModalDialog(QDialog, MessageBoxMixin):
@@ -748,7 +745,7 @@ def import_meta_gui(electrum_window, title, importer, on_success):
 def export_meta_gui(electrum_window, title, exporter):
     filter_ = "JSON (*.json);;All files (*)"
     filename = electrum_window.getSaveFileName(_("Select file to save your {}").format(title),
-                                               'electrum_{}.json'.format(title), filter_)
+                                               'electrumg_{}.json'.format(title), filter_)
     if not filename:
         return
     try:

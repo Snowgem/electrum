@@ -31,14 +31,14 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_zcash.bitcoin import base_encode
-from electrum_zcash.i18n import _
-from electrum_zcash.plugins import run_hook
-from electrum_zcash import simple_config
+from electrum.bitcoin import base_encode
+from electrum.i18n import _
+from electrum.plugins import run_hook
+from electrum import simple_config
 
-from electrum_zcash.util import bfh
-from electrum_zcash.wallet import AddTransactionException
-from electrum_zcash.transaction import SerializationError
+from electrum.util import bfh
+from electrum.wallet import AddTransactionException
+from electrum.transaction import SerializationError
 
 from .util import *
 
@@ -50,10 +50,17 @@ def show_transaction(tx, parent, desc=None, prompt_if_unsaved=False):
         d = TxDialog(tx, parent, desc, prompt_if_unsaved)
     except SerializationError as e:
         traceback.print_exc(file=sys.stderr)
-        parent.show_critical(_("Electrum was unable to deserialize the transaction:") + "\n" + str(e))
+        parent.show_critical(_("ElectrumG was unable to deserialize the transaction:") + "\n" + str(e))
     else:
         dialogs.append(d)
         d.show()
+
+
+def default_label(text=None):
+    label = QLabel(text)
+    label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+    label.setCursor(Qt.IBeamCursor)
+    return label
 
 
 class TxDialog(QDialog, MessageBoxMixin):
@@ -89,18 +96,19 @@ class TxDialog(QDialog, MessageBoxMixin):
         qr_show = lambda: parent.show_qrcode(str(self.tx_hash_e.text()), 'Transaction ID', parent=self)
         self.tx_hash_e.addButton(":icons/qrcode.png", qr_show, _("Show as QR code"))
         self.tx_hash_e.setReadOnly(True)
+        self.tx_hash_e.setCursor(Qt.IBeamCursor)
         vbox.addWidget(self.tx_hash_e)
-        self.tx_desc = QLabel()
+        self.tx_desc = default_label()
         vbox.addWidget(self.tx_desc)
-        self.status_label = QLabel()
+        self.status_label = default_label()
         vbox.addWidget(self.status_label)
-        self.date_label = QLabel()
+        self.date_label = default_label()
         vbox.addWidget(self.date_label)
-        self.amount_label = QLabel()
+        self.amount_label = default_label()
         vbox.addWidget(self.amount_label)
-        self.size_label = QLabel()
+        self.size_label = default_label()
         vbox.addWidget(self.size_label)
-        self.fee_label = QLabel()
+        self.fee_label = default_label()
         vbox.addWidget(self.fee_label)
 
         self.add_io(vbox)
@@ -211,7 +219,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         desc = self.desc
         base_unit = self.main_window.base_unit()
         format_amount = self.main_window.format_amount
-        tx_hash, status, label, can_broadcast, amount, fee, height, conf, timestamp, exp_n = self.wallet.get_tx_info(self.tx)
+        tx_hash, status, label, can_broadcast, can_rbf, amount, fee, height, conf, timestamp, exp_n = self.wallet.get_tx_info(self.tx)
         size = self.tx.estimated_size()
         self.broadcast_button.setEnabled(can_broadcast)
         can_sign = not self.tx.is_complete() and \
@@ -256,7 +264,7 @@ class TxDialog(QDialog, MessageBoxMixin):
 
     def add_io(self, vbox):
         if self.tx.locktime > 0:
-            vbox.addWidget(QLabel("LockTime: %d\n" % self.tx.locktime))
+            vbox.addWidget(default_label("LockTime: %d\n" % self.tx.locktime))
 
         vbox.addWidget(QLabel(_("Inputs") + ' (%d)'%len(self.tx.inputs())))
         ext = QTextCharFormat()

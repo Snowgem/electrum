@@ -26,13 +26,13 @@
 import webbrowser
 import datetime
 
-from electrum_zcash.wallet import AddTransactionException, TX_HEIGHT_LOCAL
+from electrum.wallet import AddTransactionException, TX_HEIGHT_LOCAL
 from .util import *
-from electrum_zcash.i18n import _
-from electrum_zcash.util import block_explorer_URL, profiler
+from electrum.i18n import _
+from electrum.util import block_explorer_URL, profiler
 
 try:
-    from electrum_zcash.plot import plot_history, NothingToPlotException
+    from electrum.plot import plot_history, NothingToPlotException
 except:
     plot_history = None
 
@@ -174,11 +174,13 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         grid = QGridLayout()
         grid.addWidget(QLabel(_("Start")), 0, 0)
         grid.addWidget(QLabel(self.format_date(start_date)), 0, 1)
-        grid.addWidget(QLabel(_("End")), 1, 0)
-        grid.addWidget(QLabel(self.format_date(end_date)), 1, 1)
-        grid.addWidget(QLabel(_("Initial balance")), 2, 0)
-        grid.addWidget(QLabel(format_amount(h['start_balance'])), 2, 1)
-        grid.addWidget(QLabel(str(h.get('start_fiat_balance'))), 2, 2)
+        grid.addWidget(QLabel(str(h['start_fiat_value']) + '/BTC'), 0, 2)
+        grid.addWidget(QLabel(_("Initial balance")), 1, 0)
+        grid.addWidget(QLabel(format_amount(h['start_balance'])), 1, 1)
+        grid.addWidget(QLabel(str(h.get('start_fiat_balance'))), 1, 2)
+        grid.addWidget(QLabel(_("End")), 2, 0)
+        grid.addWidget(QLabel(self.format_date(end_date)), 2, 1)
+        grid.addWidget(QLabel(str(h['end_fiat_value']) + '/BTC'), 2, 2)
         grid.addWidget(QLabel(_("Final balance")), 4, 0)
         grid.addWidget(QLabel(format_amount(h['end_balance'])), 4, 1)
         grid.addWidget(QLabel(str(h.get('end_fiat_balance'))), 4, 2)
@@ -258,7 +260,8 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             for i in range(len(entry)):
                 if i>3:
                     item.setTextAlignment(i, Qt.AlignRight | Qt.AlignVCenter)
-                item.setFont(i, QFont(MONOSPACE_FONT))
+                if i!=2:
+                    item.setFont(i, QFont(MONOSPACE_FONT))
             if value and value < 0:
                 item.setForeground(3, QBrush(QColor("#BC1E1E")))
                 item.setForeground(4, QBrush(QColor("#BC1E1E")))
@@ -341,6 +344,14 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             menu.addAction(_("Edit {}").format(self.headerItem().text(c)),
                            lambda bound_c=c: self.editItem(item, bound_c))
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
+        if is_unconfirmed and tx:
+            rbf = is_mine and not tx.is_final()
+            if rbf:
+                menu.addAction(_("Increase fee"), lambda: self.parent.bump_fee_dialog(tx))
+            else:
+                child_tx = self.wallet.cpfp(tx, 0)
+                if child_tx:
+                    menu.addAction(_("Child pays for parent"), lambda: self.parent.cpfp(tx, child_tx))
         if pr_key:
             menu.addAction(self.icon_cache.get(":icons/seal"), _("View invoice"), lambda: self.parent.show_invoice(pr_key))
         if tx_URL:
@@ -376,7 +387,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         d = WindowModalDialog(self, _('Export History'))
         d.setMinimumSize(400, 200)
         vbox = QVBoxLayout(d)
-        defaultname = os.path.expanduser('~/electrum-history.csv')
+        defaultname = os.path.expanduser('~/electrumg-history.csv')
         select_msg = _('Select file to export your wallet transactions to')
         hbox, filename_e, csv_button = filename_field(self, self.config, defaultname, select_msg)
         vbox.addLayout(hbox)
@@ -393,7 +404,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         try:
             self.do_export_history(self.wallet, filename, csv_button.isChecked())
         except (IOError, os.error) as reason:
-            export_error_label = _("Electrum was unable to produce a transaction export.")
+            export_error_label = _("ElectrumG was unable to produce a transaction export.")
             self.parent.show_critical(export_error_label + "\n" + str(reason), title=_("Unable to export history"))
             return
         self.parent.show_message(_("Your wallet history has been successfully exported."))
@@ -414,5 +425,5 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
                 for line in lines:
                     transaction.writerow(line)
             else:
-                from electrum_zcash.util import json_encode
+                from electrum.util import json_encode
                 f.write(json_encode(history))

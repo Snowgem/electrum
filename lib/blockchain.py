@@ -21,6 +21,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
+import gzip
 import threading
 from time import sleep
 
@@ -113,6 +114,7 @@ def read_blockchains(config):
             util.print_error("cannot connect", filename)
     return blockchains
 
+
 def check_header(header):
     if type(header) is not dict:
         return False
@@ -120,6 +122,7 @@ def check_header(header):
         if b.check_header(header):
             return b
     return False
+
 
 def can_connect(header):
     for b in blockchains.values():
@@ -135,7 +138,8 @@ class Blockchain(util.PrintError):
 
     def __init__(self, config, checkpoint, parent_id):
         self.config = config
-        self.catch_up = None # interface catching up
+        # interface catching up
+        self.catch_up = None
         self.checkpoint = checkpoint
         self.checkpoints = constants.net.CHECKPOINTS
         self.parent_id = parent_id

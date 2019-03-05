@@ -21,13 +21,7 @@ CCY_PRECISIONS = {'BHD': 3, 'BIF': 0, 'BYR': 0, 'CLF': 4, 'CLP': 0,
                   'JOD': 3, 'JPY': 0, 'KMF': 0, 'KRW': 0, 'KWD': 3,
                   'LYD': 3, 'MGA': 1, 'MRO': 1, 'OMR': 3, 'PYG': 0,
                   'RWF': 0, 'TND': 3, 'UGX': 0, 'UYI': 0, 'VND': 0,
-                  'VUV': 0, 'XAF': 0, 'XAU': 4, 'XOF': 0, 'XPF': 0,
-                  # Not ISO 4217.
-                  'BTC': 8}
-
-
-DEFAULT_EXCHANGE = 'BitcoinAverage'
-DEFAULT_CCY = 'USD'
+                  'VUV': 0, 'XAF': 0, 'XAU': 4, 'XOF': 0, 'XPF': 0}
 
 
 class ExchangeBase(PrintError):
@@ -121,57 +115,17 @@ class ExchangeBase(PrintError):
         return sorted([str(a) for (a, b) in rates.items() if b is not None and len(a)==3])
 
 
-class BitcoinAverage(ExchangeBase):
+class Bitfinex(ExchangeBase):
+    def get_rates(self, ccy):
+        json = self.get_json('api.bitfinex.com', "/v1/ticker/btg%s" % ccy)
+        return {ccy: Decimal(json['last_price'])}
+
+
+class Bitmarket(ExchangeBase):
 
     def get_rates(self, ccy):
-        json = self.get_json('apiv2.bitcoinaverage.com',
-                             '/indices/local/ticker/XSG%s' % ccy)
-        return {ccy: Decimal(json['last'])}
-
-
-    def history_ccys(self):
-        return ['USD', 'EUR', 'PLN']
-
-    def request_history(self, ccy):
-        history = self.get_json('apiv2.bitcoinaverage.com',
-                               "/indices/local/history/XSG%s"
-                               "?period=alltime&format=json" % ccy)
-        return dict([(h['time'][:10], h['average']) for h in history])
-
-
-class Bittrex(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('bittrex.com',
-                             '/api/v1.1/public/getticker?market=BTC-XSG')
-        quote_currencies = {}
-        if not json.get('success', False):
-            return quote_currencies
-        last = Decimal(json['result']['Last'])
-        quote_currencies['BTC'] = last
-        return quote_currencies
-
-
-class Poloniex(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('poloniex.com', '/public?command=returnTicker')
-        quote_currencies = {}
-        zcash_ticker = json.get('BTC_XSG')
-        quote_currencies['BTC'] = Decimal(zcash_ticker['last'])
-        return quote_currencies
-
-
-class CoinMarketCap(ExchangeBase):
-    def get_rates(self, ccy):
-        json = self.get_json('api.coinmarketcap.com', '/v1/ticker/1437/')
-        quote_currencies = {}
-        if not isinstance(json, list):
-            return quote_currencies
-        json = json[0]
-        for ccy, key in [
-            ('USD', 'price_usd'),
-        ]:
-            quote_currencies[ccy] = Decimal(json[key])
-        return quote_currencies
+        json = self.get_json('www.bitmarket.pl', '/json/BTGPLN/ticker.json')
+        return {'PLN': Decimal(json['last'])}
 
 
 def dictinvert(d):
@@ -181,6 +135,7 @@ def dictinvert(d):
             keys = inv.setdefault(v, [])
             keys.append(k)
     return inv
+
 
 def get_exchanges_and_currencies():
     import os, json
@@ -289,10 +244,10 @@ class FxThread(ThreadJob):
 
     def get_currency(self):
         '''Use when dynamic fetching is needed'''
-        return self.config.get("currency", DEFAULT_CCY)
+        return self.config.get("currency", "EUR")
 
     def config_exchange(self):
-        return self.config.get('use_exchange', DEFAULT_EXCHANGE)
+        return self.config.get('use_exchange', 'Bitfinex')
 
     def show_history(self):
         return self.is_enabled() and self.get_history_config() and self.ccy in self.exchange.history_ccys()
@@ -304,7 +259,7 @@ class FxThread(ThreadJob):
         self.on_quotes()
 
     def set_exchange(self, name):
-        class_ = globals().get(name, Bittrex)
+        class_ = globals().get(name, Bitfinex)
         self.print_error("using exchange", name)
         if self.config_exchange() != name:
             self.config.set_key('use_exchange', name, True)
@@ -371,6 +326,6 @@ class FxThread(ThreadJob):
         return self.fiat_value(satoshis, self.history_rate(d_t))
 
     def timestamp_rate(self, timestamp):
-        from electrum_zcash.util import timestamp_to_datetime
+        from electrum.util import timestamp_to_datetime
         date = timestamp_to_datetime(timestamp)
         return self.history_rate(date)

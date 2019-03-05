@@ -354,7 +354,7 @@ class CoinChooserPrivacy(CoinChooserRandom):
                 badness += (min_change - change) / (min_change + 10000)
             elif change > max_change:
                 badness += (change - max_change) / (max_change + 10000)
-                # Penalize large change; 5 BTC excess ~= using 1 more input
+                # Penalize large change; 5 BTG excess ~= using 1 more input
                 badness += change / (COIN * 5)
             return badness
 

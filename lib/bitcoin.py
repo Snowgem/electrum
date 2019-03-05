@@ -438,7 +438,6 @@ def DecodeBase58Check(psz):
         return key
 
 
-
 # backwards compat
 # extended WIF for segwit (used in 3.0.x; but still used internally)
 # the keys in this dict should be a superset of what Imported Wallets can import
@@ -882,7 +881,6 @@ def deserialize_xkey(xkey, prv, *, net=None):
     n = 33 if prv else 32
     K_or_k = xkey[13+n:]
     return xtype, depth, fingerprint, child_number, c, K_or_k
-
 
 
 def deserialize_xpub(xkey, *, net=None):

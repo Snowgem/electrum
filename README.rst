@@ -1,4 +1,4 @@
-Electrum-SnowGem - Lightweight SnowGem client
+Electrum - Lightweight Bitcoin client
 =====================================
 
 ::
@@ -6,12 +6,18 @@ Electrum-SnowGem - Lightweight SnowGem client
   Licence: MIT Licence
   Author: Thomas Voegtlin
   Language: Python
-  Homepage: https://github.com/Snowgem/electrum
+  Homepage: https://electrum.org/
 
 
-.. image:: https://github.com/Snowgem/electrum.svg?branch=master
-    :target: https://github.com/Snowgem/electrum
+.. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
+    :target: https://travis-ci.org/spesmilo/electrum
     :alt: Build Status
+.. image:: https://coveralls.io/repos/github/spesmilo/electrum/badge.svg?branch=master
+    :target: https://coveralls.io/github/spesmilo/electrum?branch=master
+    :alt: Test coverage statistics
+.. image:: https://img.shields.io/badge/help-translating-blue.svg
+    :target: https://crowdin.com/project/electrum
+    :alt: Help translating Electrum online
 
 
 
@@ -53,7 +59,7 @@ Development version
 
 Check out the code from GitHub::
 
-    git clone git://github.com/Snowgem/electrum.git
+    git clone git://github.com/spesmilo/electrum.git
     cd electrum
 
 Run install (this should install dependencies)::
@@ -87,6 +93,17 @@ To create binaries, create the 'packages' directory::
     ./contrib/make_packages
 
 This directory contains the python dependencies used by Electrum.
+
+Mac OS X / macOS
+--------
+
+See `contrib/build-osx/`.
+
+Windows
+-------
+
+See `contrib/build-wine/`.
+
 
 Android
 -------

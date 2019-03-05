@@ -8,10 +8,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from electrum_zcash import Wallet, WalletStorage
-from electrum_zcash.util import UserCancelled, InvalidPassword
-from electrum_zcash.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET
-from electrum_zcash.i18n import _
+from electrum import Wallet, WalletStorage
+from electrum.util import UserCancelled, InvalidPassword
+from electrum.base_wizard import BaseWizard, HWD_SETUP_DECRYPT_WALLET
+from electrum.i18n import _
 
 from .seed_dialog import SeedLayout, KeysLayout
 from .network_dialog import NetworkChoiceLayout
@@ -21,6 +21,7 @@ from .password_dialog import PasswordLayout, PasswordLayoutForHW, PW_NEW
 
 class GoBack(Exception):
     pass
+
 
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
                      + _("Leave this field empty if you want to disable encryption.")
@@ -97,7 +98,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     def __init__(self, config, app, plugins, storage):
         BaseWizard.__init__(self, config, storage)
         QDialog.__init__(self, None)
-        self.setWindowTitle('Electrum  -  ' + _('Install Wizard'))
+        self.setWindowTitle('ElectrumG -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
         # Set for base base class
@@ -142,7 +143,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(scroll, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon(':icons/electrum.png')
+        self.set_icon(':icons/electrumg_small.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.
@@ -169,7 +170,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox2.addWidget(self.pw_e)
         hbox2.addStretch()
         vbox.addLayout(hbox2)
-        self.set_layout(vbox, title=_('Electrum wallet'))
+        self.set_layout(vbox, title=_('ElectrumG wallet'))
 
         wallet_folder = os.path.dirname(self.storage.path)
 
@@ -276,7 +277,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         path = self.storage.path
         if self.storage.requires_split():
             self.hide()
-            msg = _("The wallet '{}' contains multiple accounts, which are no longer supported since Electrum 2.7.\n\n"
+            msg = _("The wallet '{}' contains multiple accounts, which are no longer supported.\n\n"
                     "Do you want to split your wallet into multiple files?").format(path)
             if not self.question(msg):
                 return
@@ -322,8 +323,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
     def set_icon(self, filename):
         prior_filename, self.icon_filename = self.icon_filename, filename
-        self.logo.setPixmap(QPixmap(filename)
-                                .scaledToWidth(64, Qt.SmoothTransformation))
+        self.logo.setPixmap(QPixmap(filename))
         return prior_filename
 
     def set_layout(self, layout, title=None, next_enabled=True):
@@ -540,7 +540,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         return None
 
     def init_network(self, network):
-        message = _("Electrum communicates with remote servers to get "
+        message = _("ElectrumG communicates with remote servers to get "
                   "information about your transactions and addresses. The "
                   "servers all fulfill the same purpose only differing in "
                   "hardware. In most cases you simply want to let Electrum "

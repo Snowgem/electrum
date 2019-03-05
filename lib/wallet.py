@@ -350,7 +350,7 @@ class Abstract_Wallet(PrintError):
         addrs = self.get_receiving_addresses()
         if len(addrs) > 0:
             if not bitcoin.is_address(addrs[0]):
-                raise WalletFileException('The addresses in this wallet are not SnowGem addresses.')
+                raise WalletFileException('The addresses in this wallet are not BitcoinGold addresses.')
 
     def synchronize(self):
         pass
@@ -676,7 +676,7 @@ class Abstract_Wallet(PrintError):
         received, sent = self.get_addr_io(address)
         return sum([v for height, v, is_cb in received.values()])
 
-    # return the balance of a bitcoin address: confirmed and matured, unconfirmed, unmatured
+    # return the balance of a BitcoinGold address: confirmed and matured, unconfirmed, unmatured
     def get_addr_balance(self, address):
         received, sent = self.get_addr_io(address)
         c = u = x = 0
@@ -1478,7 +1478,7 @@ class Abstract_Wallet(PrintError):
         if not r:
             return
         out = copy.copy(r)
-        out['URI'] = 'snowgem:' + addr + '?amount=' + format_satoshis(out.get('amount'))
+        out['URI'] = 'bitcoingold:' + addr + '?amount=' + format_satoshis(out.get('amount'))
         status, conf = self.get_request_status(addr)
         out['status'] = status
         if conf is not None:
@@ -1555,7 +1555,7 @@ class Abstract_Wallet(PrintError):
     def add_payment_request(self, req, config):
         addr = req['address']
         if not bitcoin.is_address(addr):
-            raise Exception(_('Invalid SnowGem address.'))
+            raise Exception(_('Invalid BitcoinGold address.'))
         if not self.is_mine(addr):
             raise Exception(_('Address not in wallet.'))
 

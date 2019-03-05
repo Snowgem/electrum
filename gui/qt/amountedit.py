@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import (QLineEdit, QStyle, QStyleOptionFrame)
 
 from decimal import Decimal
-from electrum_zcash.util import format_satoshis_plain
+from electrum.util import format_satoshis_plain
 
 
 class MyLineEdit(QLineEdit):
@@ -21,8 +21,8 @@ class AmountEdit(MyLineEdit):
 
     def __init__(self, base_unit, is_int = False, parent=None):
         QLineEdit.__init__(self, parent)
-        # This seems sufficient for hundred-BTC amounts with 8 decimals
-        self.setFixedWidth(180)
+        # This seems sufficient for hundred-BTG amounts with 8 decimals
+        self.setFixedWidth(140)
         self.base_unit = base_unit
         self.textChanged.connect(self.numbify)
         self.is_int = is_int
@@ -73,7 +73,7 @@ class AmountEdit(MyLineEdit):
         self.setText("%d"%x)
 
 
-class BTCAmountEdit(AmountEdit):
+class BTGAmountEdit(AmountEdit):
 
     def __init__(self, decimal_point, is_int = False, parent=None):
         AmountEdit.__init__(self, self._base_unit, is_int, parent)
@@ -82,11 +82,11 @@ class BTCAmountEdit(AmountEdit):
     def _base_unit(self):
         p = self.decimal_point()
         if p == 8:
-            return 'XSG'
+            return 'BTG'
         if p == 5:
-            return 'mXSG'
+            return 'mBTG'
         if p == 2:
-            return 'uXSG'
+            return 'bits'
         raise Exception('Unknown base unit')
 
     def get_amount(self):
@@ -104,12 +104,12 @@ class BTCAmountEdit(AmountEdit):
             self.setText(format_satoshis_plain(amount, self.decimal_point()))
 
 
-class FeerateEdit(BTCAmountEdit):
+class FeerateEdit(BTGAmountEdit):
     def _base_unit(self):
-        return 'sat/kB'
+        return 'sat/byte'
 
     def get_amount(self):
-        sat_per_kb_amount = BTCAmountEdit.get_amount(self)
-        if sat_per_kb_amount is None:
+        sat_per_byte_amount = BTGAmountEdit.get_amount(self)
+        if sat_per_byte_amount is None:
             return None
-        return sat_per_kb_amount
+        return 1000 * sat_per_byte_amount
