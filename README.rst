@@ -6,11 +6,11 @@ Electrum-SnowGem - Lightweight SnowGem client
   Licence: MIT Licence
   Author: Thomas Voegtlin
   Language: Python
-  Homepage: https://github.com/Snowgem/electrum-snowgem
+  Homepage: https://github.com/Snowgem/electrum
 
 
-.. image:: https://github.com/Snowgem/electrum-snowgem.svg?branch=master
-    :target: https://github.com/Snowgem/electrum-snowgem
+.. image:: https://github.com/Snowgem/electrum.svg?branch=master
+    :target: https://github.com/Snowgem/electrum
     :alt: Build Status
 
 
@@ -30,7 +30,7 @@ Electrum-Snowgem from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum-Snowgem from its root directory, just do::
 
-    ./electrum-snowgem
+    ./electrum
 
 You can also install Electrum-Snowgem on your system, by running this command::
 
@@ -53,8 +53,8 @@ Development version
 
 Check out the code from GitHub::
 
-    git clone git://github.com/zebra-lucky/electrum-zcash.git
-    cd electrum-zcash
+    git clone git://github.com/Snowgem/electrum.git
+    cd electrum
 
 Run install (this should install dependencies)::
 

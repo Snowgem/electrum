@@ -2,23 +2,21 @@
 ;Include Modern UI
   !include "TextFunc.nsh" ;Needed for the $GetSize function. I know, doesn't sound logical, it isn't.
   !include "MUI2.nsh"
-  !include "x64.nsh"
   
 ;--------------------------------
 ;Variables
 
-  !define PRODUCT_NAME "Electrum-Snowgem"
-  !define PRODUCT_WEB_SITE "https://github.com/Snowgem/electrum-snowgem"
-  !define PRODUCT_PUBLISHER "Electrum Technologies GmbH"
+  !define PRODUCT_NAME "SnowGemElectrum"
+  !define PRODUCT_WEB_SITE "https://github.com/Snowgem/electrum"
+  !define PRODUCT_PUBLISHER "SnowGem Foundation"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
-  !define BUILD_ARCH "${WINEARCH}"
 
 ;--------------------------------
 ;General
 
   ;Name and file
   Name "${PRODUCT_NAME}"
-  OutFile "dist/electrum-snowgem-${PRODUCT_VERSION}-setup-${BUILD_ARCH}.exe"
+  OutFile "dist/electrum-setup.exe"
 
   ;Default installation folder
   InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
@@ -60,7 +58,7 @@
   VIAddVersionKey ProductName "${PRODUCT_NAME} Installer"
   VIAddVersionKey Comments "The installer for ${PRODUCT_NAME}"
   VIAddVersionKey CompanyName "${PRODUCT_NAME}"
-  VIAddVersionKey LegalCopyright "2013-2016 ${PRODUCT_PUBLISHER}"
+  VIAddVersionKey LegalCopyright "2013-2018 ${PRODUCT_PUBLISHER}"
   VIAddVersionKey FileDescription "${PRODUCT_NAME} Installer"
   VIAddVersionKey FileVersion ${PRODUCT_VERSION}
   VIAddVersionKey ProductVersion ${PRODUCT_VERSION}
@@ -74,20 +72,43 @@
   !define MUI_ABORTWARNING
   !define MUI_ABORTWARNING_TEXT "Are you sure you wish to abort the installation of ${PRODUCT_NAME}?"
   
-  !define MUI_ICON "icons\electrum-snowgem.ico"
+  !define MUI_ICON "tmp\electrum\icons\electrum.ico"
   
 ;--------------------------------
 ;Pages
 
+  !insertmacro MUI_PAGE_WELCOME
+  !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_INSTFILES
+
+    # Setting for finish page
+    !define MUI_FINISHPAGE_SHOWREADME
+    !define MUI_FINISHPAGE_SHOWREADME_TEXT "Launch ${PRODUCT_NAME}"
+    !define MUI_FINISHPAGE_SHOWREADME_FUNCTION RunApplication
+  !insertmacro MUI_PAGE_FINISH
+
+  !insertmacro MUI_UNPAGE_WELCOME
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
+  !insertmacro MUI_UNPAGE_FINISH
 
 ;--------------------------------
 ;Languages
 
   !insertmacro MUI_LANGUAGE "English"
+
+;--------------------------------
+Section "Start with Windows" SecStartup
+SectionEnd
+
+;--------------------------------
+;Descriptions
+  LangString DESC_SecStartup ${LANG_ENGLISH} "Run ${PRODUCT_NAME} on Windows Startup"
+
+  !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecStartup} $(DESC_SecStartup)
+  !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
 ;Installer Sections
@@ -101,16 +122,10 @@ Function .onInit
 		SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
 		Quit
 	${EndIf}
+FunctionEnd
 
-    ${If} ${RunningX64}
-        SetRegView 64
-        StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
-    ${Else}
-        ${If} ${BUILD_ARCH} == "win64"
-            MessageBox MB_OK|MB_ICONSTOP "Can not Install 64-bit App On 32-bit OS!"
-            Abort
-        ${EndIf}
-    ${EndIf}
+Function RunApplication
+  ExecShell "" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe"
 FunctionEnd
 
 Section
@@ -120,10 +135,11 @@ Section
   RMDir /r "$INSTDIR\*.*"
   Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
+  Delete "$SMSTARTUP\${PRODUCT_NAME}.lnk"
 
   ;Files to pack into the installer
-  File /r "dist\electrum-snowgem\*.*"
-  File "icons\electrum-snowgem.ico"
+  File /r "dist\electrum\*.*"
+  File "..\..\icons\electrum.ico"
 
   ;Store installation folder
   WriteRegStr HKCU "Software\${PRODUCT_NAME}" "" $INSTDIR
@@ -134,21 +150,20 @@ Section
 
   ;Create desktop shortcut
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe" ""
+  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" ""
 
   ;Create start-menu items
   DetailPrint "Creating start-menu items..."
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe" "" "$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" "" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" 0
 
-
-  ;Links snowgem: URI's to Electrum
-  WriteRegStr HKCU "Software\Classes\snowgem" "" "URL:snowgem Protocol"
-  WriteRegStr HKCU "Software\Classes\zcasnowgemsh" "URL Protocol" ""
-  WriteRegStr HKCU "Software\Classes\snowgem" "DefaultIcon" "$\"$INSTDIR\electrum-snowgem.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\snowgem\shell\open\command" "" "$\"$INSTDIR\electrum-snowgem-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  ;Links bitcoingold: URI's to SnowGemElectrum
+  WriteRegStr HKCU "Software\Classes\bitcoingold" "" "URL:bitcoingold Protocol"
+  WriteRegStr HKCU "Software\Classes\bitcoingold" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\bitcoingold" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
+  WriteRegStr HKCU "Software\Classes\bitcoingold\shell\open\command" "" "$\"$INSTDIR\electrum-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibility to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
@@ -156,12 +171,16 @@ Section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\electrum-snowgem.ico"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\electrum.ico"
 
   ;Fixes Windows broken size estimates
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
   WriteRegDWORD HKCU "${PRODUCT_UNINST_KEY}" "EstimatedSize" "$0"
+
+  ${If} ${SectionIsSelected} ${SecStartup}
+    CreateShortCut "$SMSTARTUP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-${PRODUCT_VERSION}.exe" ""
+  ${EndIf}
 SectionEnd
 
 ;--------------------------------
@@ -177,9 +196,10 @@ Section "Uninstall"
 
   Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
+  Delete "$SMSTARTUP\${PRODUCT_NAME}.lnk"
   RMDir  "$SMPROGRAMS\${PRODUCT_NAME}"
   
-  DeleteRegKey HKCU "Software\Classes\snowgem"
+  DeleteRegKey HKCU "Software\Classes\bitcoingold"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
 SectionEnd

@@ -78,12 +78,12 @@ setup(
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum-snowgem'],
+    scripts=['electrum'],
     data_files=data_files,
     description="Lightweight SnowGem Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT License",
-    url="https://github.com/Snowgem/electrum-snowgem",
+    url="https://github.com/Snowgem/electrum",
     long_description="""Lightweight SnowGem Wallet"""
 )

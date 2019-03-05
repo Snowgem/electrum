@@ -143,9 +143,9 @@ PEP440_PUBVER_PATTERN = re.compile('^((\d+)!)?'
                                    '([a-zA-Z]+\d+)?'
                                    '((\.[a-zA-Z]+\d+)*)$')
 REL_NOTES_PATTERN = re.compile('^#.+?(^[^#].+?)^#.+?', re.M | re.S)
-SDIST_NAME_PATTERN = re.compile('^Electrum-Snowgem-(.*).tar.gz$')
-SDIST_DIR_TEMPLATE = 'Electrum-Snowgem-{version}'
-PPA_SOURCE_NAME = 'electrum-snowgem'
+SDIST_NAME_PATTERN = re.compile('^Electrum-(.*).tar.gz$')
+SDIST_DIR_TEMPLATE = 'Electrum-{version}'
+PPA_SOURCE_NAME = 'electrum'
 PPA_ORIG_NAME_TEMPLATE = '%s_{version}.orig.tar.gz' % PPA_SOURCE_NAME
 CHANGELOG_TEMPLATE = """%s ({ppa_version}) {series}; urgency=medium
 {changes} -- {uid}  {time}""" % PPA_SOURCE_NAME
