@@ -292,6 +292,9 @@ class Network(util.DaemonThread):
     def is_up_to_date(self):
         return self.unanswered_requests == {}
 
+    def is_downloading(self):
+        return self.connection_status == 'downloading'
+
     def queue_request(self, method, params, interface=None):
         # If you want to queue a request on any interface it must go
         # through this function so message ids are properly tracked
