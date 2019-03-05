@@ -124,7 +124,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         self.create_status_bar()
         self.need_update = threading.Event()
-
+        self.minimize_to_tray = config.get('minimize_tray', True)
         self.decimal_point = config.get('decimal_point', 8)
         self.num_zeros     = int(config.get('num_zeros', 8))
 

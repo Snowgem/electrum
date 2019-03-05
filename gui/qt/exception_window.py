@@ -119,9 +119,7 @@ class Exception_Window(QWidget, MessageBoxMixin):
             "app_version": ELECTRUM_VERSION,
             "os": platform.platform(),
             "wallet_type": "unknown",
-            "locale": locale.getdefaultlocale()[0],
-            "testnet": constants.net.TESTNET,
-            "regtest": constants.net.REGTEST
+            "locale": locale.getdefaultlocale()[0]
         }
         try:
             args["wallet_type"] = self.main_window.wallet.wallet_type
