@@ -47,8 +47,8 @@ from . import rsakey
 
 from .bitcoin import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/snowgem-paymentrequest', 'User-Agent': 'Electrum-Snowgem'}
-ACK_HEADERS = {'Content-Type':'application/snowgem-payment','Accept':'application/snowgem-paymentack','User-Agent':'Electrum-Snowgem'}
+REQUEST_HEADERS = {'Accept': 'application/snowgem-paymentrequest', 'User-Agent': 'Electrum'}
+ACK_HEADERS = {'Content-Type':'application/snowgem-payment','Accept':'application/snowgem-paymentack','User-Agent':'Electrum'}
 
 ca_path = requests.certs.where()
 ca_list = None
@@ -267,7 +267,7 @@ class PaymentRequest:
         paymnt.transactions.append(bfh(raw_tx))
         ref_out = paymnt.refund_to.add()
         ref_out.script = util.bfh(transaction.Transaction.pay_script(TYPE_ADDRESS, refund_addr))
-        paymnt.memo = "Paid using Electrum-Snowgem"
+        paymnt.memo = "Paid using Electrum"
         pm = paymnt.SerializeToString()
         payurl = urllib.parse.urlparse(pay_det.payment_url)
         try:

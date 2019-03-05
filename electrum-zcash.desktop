@@ -1,14 +1,14 @@
-# If you want Electrum-Snowgem to appear in a Linux app launcher ("start menu"), install this by doing:
+# If you want Electrum to appear in a Linux app launcher ("start menu"), install this by doing:
 # sudo desktop-file-install electrum-zcash.desktop
 
 [Desktop Entry]
 Comment=Lightweight SnowGem Client
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-snowgem %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum %u"
 GenericName[en_US]=SnowGem Wallet
 GenericName=SnowGem Wallet
-Icon=electrum-snowgem.png
-Name[en_US]=Electrum-Snowgem Bitcoin Wallet
-Name=Electrum-Snowgem Bitcoin Wallet
+Icon=electrum.png
+Name[en_US]=Electrum Bitcoin Wallet
+Name=Electrum Bitcoin Wallet
 Categories=Finance;Network;
 StartupNotify=false
 Terminal=false
@@ -17,5 +17,5 @@ MimeType=x-scheme-handler/snowgem;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-snowgem --testnet %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum --testnet %u"
 Name=Testnet mode

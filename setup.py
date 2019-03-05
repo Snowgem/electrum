@@ -18,7 +18,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
 version = imp.load_source('version', 'lib/version.py')
 
 if sys.version_info[:3] < (3, 4, 0):
-    sys.exit("Error: Electrum-Snowgem requires Python version >= 3.4.0...")
+    sys.exit("Error: Electrum requires Python version >= 3.4.0...")
 
 data_files = []
 
@@ -37,11 +37,11 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
         (os.path.join(usr_share, 'applications/'), ['electrum-zcash.desktop']),
-        (os.path.join(usr_share, icons_dirname), ['icons/electrum-snowgem.png'])
+        (os.path.join(usr_share, icons_dirname), ['icons/electrum.png'])
     ]
 
 setup(
-    name="Electrum-Snowgem",
+    name="Electrum",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
     extras_require={

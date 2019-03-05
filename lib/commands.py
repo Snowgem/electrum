@@ -293,7 +293,7 @@ class Commands:
     @command('')
     def dumpprivkeys(self):
         """Deprecated."""
-        return "This command is deprecated. Use a pipe instead: 'electrum-snowgem listaddresses | electrum-snowgem getprivatekeys - '"
+        return "This command is deprecated. Use a pipe instead: 'electrum listaddresses | electrum getprivatekeys - '"
 
     @command('')
     def validateaddress(self, address):
@@ -329,7 +329,7 @@ class Commands:
 
     @command('n')
     def getmerkle(self, txid, height):
-        """Get Merkle branch of a transaction included in a block. Electrum-Snowgem
+        """Get Merkle branch of a transaction included in a block. Electrum
         uses this to verify transactions (Simple Payment Verification)."""
         return self.network.synchronous_get(('blockchain.transaction.get_merkle', [txid, int(height)]))
 
@@ -340,7 +340,7 @@ class Commands:
 
     @command('')
     def version(self):
-        """Return the version of Electrum-Snowgem."""
+        """Return the version of Electrum."""
         from .version import ELECTRUM_VERSION
         return ELECTRUM_VERSION
 
@@ -817,7 +817,7 @@ def add_network_options(parser):
 def add_global_options(parser):
     group = parser.add_argument_group('global options')
     group.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Show debugging information")
-    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum-snowgem directory")
+    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum directory")
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
     group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
@@ -826,11 +826,11 @@ def add_global_options(parser):
 def get_parser():
     # create main parser
     parser = argparse.ArgumentParser(
-        epilog="Run 'electrum-snowgem help <command>' to see the help for a command")
+        epilog="Run 'electrum help <command>' to see the help for a command")
     add_global_options(parser)
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
-    parser_gui = subparsers.add_parser('gui', description="Run Electrum-Snowgem Graphical User Interface.", help="Run GUI (default)")
+    parser_gui = subparsers.add_parser('gui', description="Run Electrum Graphical User Interface.", help="Run GUI (default)")
     parser_gui.add_argument("url", nargs='?', default=None, help="SnowGem URI (or bip70 file)")
     parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
     parser_gui.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")

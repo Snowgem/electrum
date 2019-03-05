@@ -1,10 +1,10 @@
 # Kivy GUI
 
-The Kivy GUI is used with Electrum-Snowgem on Android devices. To generate an APK file, follow these instructions.
+The Kivy GUI is used with Electrum on Android devices. To generate an APK file, follow these instructions.
 
 ## 1. Install python-for-android (p4a)
-p4a is used to package Electrum-Snowgem, Python, SDL and a bootstrap Java app into an APK file. 
-We patched p4a to add some functionality we need for Electrum-Snowgem. Until those changes are
+p4a is used to package Electrum, Python, SDL and a bootstrap Java app into an APK file. 
+We patched p4a to add some functionality we need for Electrum. Until those changes are
 merged into p4a, you need to merge them locally (into the master branch):
 
 1.1 [kivy/python-for-android#1217](https://github.com/kivy/python-for-android/pull/1217)
@@ -60,9 +60,9 @@ Extract into `/opt/crystax-ndk-10.3.2`
 
 
 ## 5. Create the UI Atlas
-In the `gui/kivy` directory of Electrum-Snowgem, run `make theming`.
+In the `gui/kivy` directory of Electrum, run `make theming`.
 
-## 6. Download Electrum-Snowgem dependencies
+## 6. Download Electrum dependencies
 Run `contrib/make_packages`.
 
 ## 7. Build the APK
