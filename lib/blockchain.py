@@ -164,8 +164,6 @@ class Blockchain(util.PrintError):
     def check_header(self, header):
         header_hash = hash_header(header)
         height = header.get('block_height')
-        self.print_error(header_hash)
-        self.print_error(self.get_hash(height))
         return header_hash == self.get_hash(height)
 
     def fork(parent, header):
@@ -368,19 +366,16 @@ class Blockchain(util.PrintError):
         return deserialize_header(h, height)
 
     def get_hash(self, height):
-        self.print_error("get_hash 1")
         if height == -1:
             return '0000000000000000000000000000000000000000000000000000000000000000'
         elif height == 0:
             return constants.net.GENESIS
         elif height < len(self.checkpoints) * CHUNK_LEN - TARGET_CALC_BLOCKS:
-            self.print_error("get_hash 2")
             assert (height+1) % CHUNK_LEN == 0, height
             index = height // CHUNK_LEN
             h, t, extra_headers = self.checkpoints[index]
             return h
         else:
-            self.print_error("get_hash 3")
             return hash_header(self.read_header(height))
 
     def get_median_time(self, height, chunk_headers=None):

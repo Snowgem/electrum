@@ -724,7 +724,7 @@ class Network(util.DaemonThread):
         interface.mode = 'default'
         interface.request = None
         self.interfaces[server] = interface
-        self.queue_request('blockchain.headers.subscribe', [], interface)
+        self.queue_request('blockchain.headers.subscribe', [True], interface)
         if server == self.default_server:
             self.switch_to_interface(server)
         #self.notify('interfaces')
@@ -833,10 +833,7 @@ class Network(util.DaemonThread):
             interface.print_error(response)
             self.connection_down(interface.server)
             return
-        util.print_error("len(hex_header):", len(hex_header))
-        util.print_error("get_header_size(height)*2:", get_header_size(height)*2)
         if len(hex_header) != get_header_size(height)*2:
-            util.print_error("wrong header length")
             interface.print_error('wrong header length', interface.request)
             self.connection_down(interface.server)
             return
@@ -844,7 +841,6 @@ class Network(util.DaemonThread):
         header = blockchain.deserialize_header(bfh(hex_header), height)
 
         chain = blockchain.check_header(header)
-        util.print_error(chain)
         if interface.mode == 'backward':
             can_connect = blockchain.can_connect(header)
             if can_connect and can_connect.catch_up is None:
@@ -1016,10 +1012,8 @@ class Network(util.DaemonThread):
         self.on_stop()
 
     def on_notify_header(self, interface, header):
-        height = header.get('block_height')
+        height = header.get('height')
         hex_header = header.get('hex')
-        self.print_error("height: ", height)
-        self.print_error(header)
         if not height or not hex_header:
             return
         # @TODO txid
@@ -1032,7 +1026,6 @@ class Network(util.DaemonThread):
         if height < self.max_checkpoint():
             self.connection_down(interface.server)
             return
-        self.print_error("height 2")
         interface.tip_header = header
         interface.tip = height
         if interface.mode != 'default':
@@ -1045,7 +1038,6 @@ class Network(util.DaemonThread):
             self.notify('updated')
             self.notify('interfaces')
             return
-        self.print_error("height 4")
         b = blockchain.can_connect(header)
         if b:
             interface.blockchain = b
@@ -1054,7 +1046,6 @@ class Network(util.DaemonThread):
             self.notify('updated')
             self.notify('interfaces')
             return
-        self.print_error("height 5")
         tip = max([x.height() for x in self.blockchains.values()])
         if tip >=0:
             interface.mode = 'backward'
