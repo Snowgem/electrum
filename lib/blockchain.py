@@ -1,4 +1,4 @@
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2012 thomasv@ecdsa.org
 #
 # Permission is hereby granted, free of charge, to any person
@@ -22,12 +22,13 @@
 # SOFTWARE.
 import os
 import threading
-from time import sleep
 
+from time import sleep
 from . import util
 from . import bitcoin
 from . import constants
 from .bitcoin import *
+
 
 CHUNK_LEN = 100
 
@@ -189,6 +190,19 @@ class Blockchain(util.PrintError):
         else:
             self._size = 0
 
+    def verify_header(self, header, prev_hash, target):
+        _hash = hash_header(header)
+        if prev_hash != header.get('prev_block_hash'):
+            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        if constants.net.TESTNET:
+            return
+        bits = self.target_to_bits(target)
+
+        # @TODO txid
+        # if bits != header.get('bits'):
+        #     raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        # if int('0x' + _hash, 16) > target:
+        #     raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def calculate_size(self, checkpoint, size_in_bytes):
         # Post-fork
@@ -210,18 +224,6 @@ class Blockchain(util.PrintError):
             peb = size_in_bytes // get_header_size(constants.net.EQUIHASH_FORK_HEIGHT)
 
         return pob + peb
-
-    def verify_header(self, header, prev_hash, target):
-        _hash = hash_header(header)
-        if prev_hash != header.get('prev_block_hash'):
-            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        if constants.net.TESTNET:
-            return
-        bits = self.target_to_bits(target)
-        # if bits != header.get('bits'):
-        #     raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        # if int('0x' + _hash, 16) > target:
-        #     raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def verify_chunk(self, height, data):
         size = len(data)
@@ -298,8 +300,7 @@ class Blockchain(util.PrintError):
         self._size = parent._size; parent._size = parent_branch_size
         # move files
         for b in blockchains.values():
-            if b in [self, parent]:
-                continue
+            if b in [self, parent]: continue
             if b.old_path != b.path():
                 self.print_error("renaming", b.old_path, b.path())
                 os.rename(b.old_path, b.path())

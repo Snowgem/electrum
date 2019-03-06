@@ -1,6 +1,6 @@
 
-from electrum_zcash.i18n import _
-from electrum_zcash.plugins import run_hook
+from electrum.i18n import _
+from electrum.plugins import run_hook
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QFileDialog
@@ -38,7 +38,7 @@ class ScanQRTextEdit(ButtonsTextEdit, MessageBoxMixin):
         self.allow_multi = allow_multi
         self.setReadOnly(0)
         self.addButton(":icons/file.png", self.file_input, _("Read file"))
-        icon = ":icons/qrcode.png"
+        icon = ":icons/qrcode_white.png" if ColorScheme.dark_scheme else ":icons/qrcode.png"
         self.addButton(icon, self.qr_input, _("Read QR code"))
         run_hook('scan_text_edit', self)
 
@@ -55,7 +55,7 @@ class ScanQRTextEdit(ButtonsTextEdit, MessageBoxMixin):
             self.setText(data)
 
     def qr_input(self):
-        from electrum_zcash import qrscanner, get_config
+        from electrum import qrscanner, get_config
         try:
             data = qrscanner.scan_barcode(get_config().get_video_device())
         except BaseException as e:

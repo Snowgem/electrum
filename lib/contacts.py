@@ -1,4 +1,4 @@
-# Electrum - Lightweight Bitcoin Client
+# Electrum - Lightweight SnowGem Client
 # Copyright (c) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -102,7 +102,7 @@ class Contacts(dict):
         except DNSException as e:
             print_error('Error resolving openalias: ', str(e))
             return None
-        prefix = 'xsg'
+        prefix = 'btc'
         for record in records:
             string = to_string(record.strings[0], 'utf8')
             if string.startswith('oa1:' + prefix):

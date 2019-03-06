@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -35,8 +35,8 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
-from electrum_zcash.i18n import _
-from electrum_zcash import ELECTRUM_VERSION, bitcoin, constants
+from electrum.i18n import _
+from electrum import ELECTRUM_VERSION, bitcoin, constants
 
 from .util import MessageBoxMixin
 
@@ -63,7 +63,7 @@ class Exception_Window(QWidget, MessageBoxMixin):
         self.exc_args = (exctype, value, tb)
         self.main_window = main_window
         QWidget.__init__(self)
-        self.setWindowTitle('Electrum - ' + _('An Error Occurred'))
+        self.setWindowTitle('SnowGem Electrum - ' + _('An Error Occured'))
         self.setMinimumSize(600, 300)
 
         main_box = QVBoxLayout()
@@ -111,7 +111,7 @@ class Exception_Window(QWidget, MessageBoxMixin):
         self.show()
 
     def send_report(self):
-        if constants.net.GENESIS[-4:] not in ["4943", "e26f"] and ".electrum.org" in report_server:
+        if constants.net.GENESIS[-4:] not in ["4943", "e26f"] and ".snowgem.org" in report_server:
             # Gah! Some kind of altcoin wants to send us crash reports.
             self.main_window.show_critical(_("Please report this issue manually."))
             return
@@ -136,8 +136,7 @@ class Exception_Window(QWidget, MessageBoxMixin):
         self.close()
 
     def show_never(self):
-        self.main_window._auto_crash_reports.setChecked(False)
-        self.main_window.auto_crash_reports(False)
+        self.main_window.config.set_key("show_crash_reporter", False)
         self.close()
 
     def closeEvent(self, event):
@@ -187,8 +186,7 @@ class Exception_Window(QWidget, MessageBoxMixin):
     @staticmethod
     def get_git_version():
         dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        version = subprocess.check_output(
-            ['git', 'describe', '--always', '--dirty'], cwd=dir)
+        version = subprocess.check_output(['git', 'describe', '--always'], cwd=dir)
         return str(version, "utf8").strip()
 
 
@@ -202,12 +200,9 @@ class Exception_Hook(QObject):
 
     def __init__(self, main_window, *args, **kwargs):
         super(Exception_Hook, self).__init__(*args, **kwargs)
-        if not main_window.config.get("show_crash_reporter", default=False):
-            if main_window._old_excepthook:
-                sys.excepthook = main_window._old_excepthook
+        if not main_window.config.get("show_crash_reporter", default=True):
             return
         self.main_window = main_window
-        main_window._old_excepthook = sys.excepthook
         sys.excepthook = self.handler
         self._report_exception.connect(_show_window)
 

@@ -7,9 +7,9 @@ import traceback
 
 import base64
 
-import electrum_zcash
-from electrum_zcash.plugins import BasePlugin, hook
-from electrum_zcash.i18n import _
+import electrum
+from electrum.plugins import BasePlugin, hook
+from electrum.i18n import _
 
 
 class LabelsPlugin(BasePlugin):
@@ -21,14 +21,14 @@ class LabelsPlugin(BasePlugin):
 
     def encode(self, wallet, msg):
         password, iv, wallet_id = self.wallets[wallet]
-        encrypted = electrum_zcash.bitcoin.aes_encrypt_with_iv(password, iv,
+        encrypted = electrum.bitcoin.aes_encrypt_with_iv(password, iv,
                                                          msg.encode('utf8'))
         return base64.b64encode(encrypted).decode()
 
     def decode(self, wallet, message):
         password, iv, wallet_id = self.wallets[wallet]
         decoded = base64.b64decode(message)
-        decrypted = electrum_zcash.bitcoin.aes_decrypt_with_iv(password, iv, decoded)
+        decrypted = electrum.bitcoin.aes_decrypt_with_iv(password, iv, decoded)
         return decrypted.decode('utf8')
 
     def get_nonce(self, wallet):
@@ -72,10 +72,10 @@ class LabelsPlugin(BasePlugin):
             kwargs['headers']['Content-Type'] = 'application/json'
         response = requests.request(method, url, **kwargs)
         if response.status_code != 200:
-            raise Exception(response.status_code, response.text)
+            raise BaseException(response.status_code, response.text)
         response = response.json()
         if "error" in response:
-            raise Exception(response["error"])
+            raise BaseException(response["error"])
         return response
 
     def do_request_safe(self, *args, **kwargs):

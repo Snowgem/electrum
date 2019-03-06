@@ -1,4 +1,4 @@
-'''This is the Android implementation of NFC Scanning using the
+'''This is the Android implementatoin of NFC Scanning using the
 built in NFC adapter of some android phones.
 '''
 
@@ -10,7 +10,7 @@ if platform != 'android':
     raise ImportError
 import threading
 
-from electrum_zcash_gui.kivy.nfc_scanner import NFCBase
+from electrum_gui.kivy.nfc_scanner import NFCBase
 from jnius import autoclass, cast
 from android.runnable import run_on_ui_thread
 from android import activity
@@ -33,8 +33,8 @@ app = None
 
 
 class ScannerAndroid(NFCBase):
-    ''' This is the class responsible for handling the interface with the
-    Android NFC adapter. See Module Documentation for details.
+    ''' This is the class responsible for handling the interace with the
+    Android NFC adapter. See Module Documentation for deatils.
     '''
 
     name = 'NFCAndroid'
@@ -56,7 +56,7 @@ class ScannerAndroid(NFCBase):
         if not self.nfc_adapter:
             return False
         
-        # specify that we want our activity to remain on top when a new intent
+        # specify that we want our activity to remain on top whan a new intent
         # is fired
         self.nfc_pending_intent = PendingIntent.getActivity(context, 0,
             Intent(context, context.getClass()).addFlags(
@@ -128,7 +128,7 @@ class ScannerAndroid(NFCBase):
         return details
 
     def on_new_intent(self, intent):
-        ''' This function is called when the application receives a
+        ''' This functions is called when the application receives a
         new intent, for the ones the application has registered previously,
         either in the manifest or in the foreground dispatch setup in the
         nfc_init function above. 
@@ -165,26 +165,26 @@ class ScannerAndroid(NFCBase):
     def create_AAR(self):
         '''Create the record responsible for linking our application to the tag.
         '''
-        return NdefRecord.createApplicationRecord(JString("cash.z.electrum.kivy"))
+        return NdefRecord.createApplicationRecord(JString("org.electrum_xsg.kivy"))
 
     def create_TNF_EXTERNAL(self, data):
         '''Create our actual payload record.
         '''
         if BUILDVERSION >= 14:
-            domain = "cash.z.electrum"
+            domain = "org.electrum_xsg"
             stype = "externalType"
             extRecord = NdefRecord.createExternal(domain, stype, data)
         else:
             # Creating the NdefRecord manually:
             extRecord = NdefRecord(
                 NdefRecord.TNF_EXTERNAL_TYPE,
-                "cash.z.electrum:externalType",
+                "org.electrum_xsg:externalType",
                 '',
                 data)
         return extRecord
 
     def create_ndef_message(self, *recs):
-        ''' Create the Ndef message that will be written to tag
+        ''' Create the Ndef message that will written to tag
         '''
         records = []
         for record in recs:
@@ -213,7 +213,7 @@ class ScannerAndroid(NFCBase):
         # Create record
         ndef_record = NdefRecord(
                 NdefRecord.TNF_MIME_MEDIA,
-                'cash.z.electrum.kivy', '', data)
+                'org.electrum_xsg.kivy', '', data)
         
         # Create message
         ndef_message = NdefMessage([ndef_record])

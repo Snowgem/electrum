@@ -1,8 +1,8 @@
 name: electrum
 version: master
-summary: Bitcoin thin client
+summary: SnowGem thin client
 description: |
-  Lightweight Bitcoin client
+  Lightweight SnowGem client
 
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2016 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -69,7 +69,7 @@ class BaseWizard(object):
             f = getattr(self, action)
             f(*args)
         else:
-            raise Exception("unknown action", action)
+            raise BaseException("unknown action", action)
 
     def can_go_back(self):
         return len(self.stack)>1
@@ -89,11 +89,17 @@ class BaseWizard(object):
         ])
         wallet_kinds = [
             ('standard',  _("Standard wallet")),
+            ('2fa', _("Wallet with two-factor authentication")),
             ('multisig',  _("Multi-signature wallet")),
             ('imported',  _("Import SnowGem addresses or private keys")),
         ]
         choices = [pair for pair in wallet_kinds if pair[0] in wallet_types]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_wallet_type)
+
+    def load_2fa(self):
+        self.storage.put('wallet_type', '2fa')
+        self.storage.put('use_trustedcoin', True)
+        self.plugin = self.plugins.load_plugin('trustedcoin')
 
     def on_wallet_type(self, choice):
         self.wallet_type = choice
@@ -101,6 +107,9 @@ class BaseWizard(object):
             action = 'choose_keystore'
         elif choice == 'multisig':
             action = 'choose_multisig'
+        elif choice == '2fa':
+            self.load_2fa()
+            action = self.storage.get_action()
         elif choice == 'imported':
             action = 'import_addresses_or_keys'
         self.run(action)
@@ -167,8 +176,8 @@ class BaseWizard(object):
             v = keystore.is_master_key
             title = _("Create keystore from a master key")
             message = ' '.join([
-                _("To create a watching-only wallet, please enter your master public key (xpub)."),
-                _("To create a spending wallet, please enter a master private key (xprv).")
+                _("To create a watching-only wallet, please enter your master public key (xpub/ypub/zpub)."),
+                _("To create a spending wallet, please enter a master private key (xprv/yprv/zprv).")
             ])
             self.add_xpub_dialog(title=title, message=message, run_next=self.on_restore_from_key, is_valid=v)
         else:
@@ -197,28 +206,21 @@ class BaseWizard(object):
             scanned_devices = devmgr.scan_devices()
         except BaseException as e:
             devmgr.print_error('error scanning devices: {}'.format(e))
-            debug_msg = '  {}:\n    {}'.format(_('Error scanning devices'), e)
         else:
-            debug_msg = ''
             for name, description, plugin in support:
                 try:
                     # FIXME: side-effect: unpaired_device_info sets client.handler
                     u = devmgr.unpaired_device_infos(None, plugin, devices=scanned_devices)
                 except BaseException as e:
                     devmgr.print_error('error getting device infos for {}: {}'.format(name, e))
-                    debug_msg += '  {}:\n    {}\n'.format(plugin.name, e)
                     continue
                 devices += list(map(lambda x: (name, x), u))
-        if not debug_msg:
-            debug_msg = '  {}'.format(_('No exceptions encountered.'))
         if not devices:
             msg = ''.join([
                 _('No hardware device detected.') + '\n',
                 _('To trigger a rescan, press \'Next\'.') + '\n\n',
                 _('If your device is not detected on Windows, go to "Settings", "Devices", "Connected devices", and do "Remove device". Then, plug your device again.') + ' ',
-                _('On Linux, you might have to add a new permission to your udev rules.') + '\n\n',
-                _('Debug message') + '\n',
-                debug_msg
+                _('On Linux, you might have to add a new permission to your udev rules.'),
             ])
             self.confirm_dialog(title=title, message=msg, run_next= lambda x: self.choose_hw_device(purpose))
             return
@@ -285,6 +287,8 @@ class BaseWizard(object):
         ])
         presets = (
             ('legacy BIP44', bip44_derivation(0, bip43_purpose=44)),
+            #('p2sh-segwit BIP49', bip44_derivation(0, bip43_purpose=49)),
+            #('native-segwit BIP84', bip44_derivation(0, bip43_purpose=84)),
         )
         while True:
             try:
@@ -331,7 +335,7 @@ class BaseWizard(object):
     def restore_from_seed(self):
         self.opt_bip39 = True
         self.opt_ext = True
-        is_cosigning_seed = lambda x: bitcoin.seed_type(x) in ['standard']
+        is_cosigning_seed = lambda x: bitcoin.seed_type(x) in ['standard', 'segwit']
         test = bitcoin.is_seed if self.wallet_type == 'standard' else is_cosigning_seed
         self.restore_seed_dialog(run_next=self.on_restore_seed, test=test)
 
@@ -340,13 +344,20 @@ class BaseWizard(object):
         if self.seed_type == 'bip39':
             f = lambda passphrase: self.on_restore_bip39(seed, passphrase)
             self.passphrase_dialog(run_next=f) if is_ext else f('')
-        elif self.seed_type in ['standard']:
+        elif self.seed_type in ['standard', 'segwit']:
             f = lambda passphrase: self.run('create_keystore', seed, passphrase)
             self.passphrase_dialog(run_next=f) if is_ext else f('')
         elif self.seed_type == 'old':
             self.run('create_keystore', seed, '')
+        elif self.seed_type == '2fa':
+            if self.is_kivy:
+                self.show_error(_('2FA seeds are not supported in this version'))
+                self.run('restore_from_seed')
+            else:
+                self.load_2fa()
+                self.run('on_restore_seed', seed, is_ext)
         else:
-            raise Exception('Unknown seed type', self.seed_type)
+            raise BaseException('Unknown seed type', self.seed_type)
 
     def on_restore_bip39(self, seed, passphrase):
         f = lambda x: self.run('on_bip43', seed, passphrase, str(x))
@@ -366,7 +377,7 @@ class BaseWizard(object):
             from .bitcoin import xpub_type
             t1 = xpub_type(k.xpub)
         if self.wallet_type == 'standard':
-            if has_xpub and t1 not in ['standard']:
+            if has_xpub and t1 not in ['standard', 'p2wpkh', 'p2wpkh-p2sh']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
                 self.run('choose_keystore')
                 return
@@ -374,7 +385,7 @@ class BaseWizard(object):
             self.run('create_wallet')
         elif self.wallet_type == 'multisig':
             assert has_xpub
-            if t1 not in ['standard']:
+            if t1 not in ['standard', 'p2wsh', 'p2wsh-p2sh']:
                 self.show_error(_('Wrong key type') + ' %s'%t1)
                 self.run('choose_keystore')
                 return
@@ -468,12 +479,17 @@ class BaseWizard(object):
         title = _('Choose Seed type')
         message = ' '.join([
             _("The type of addresses used by your wallet will depend on your seed."),
+            _("Segwit wallets use bech32 addresses, defined in BIP173."),
+            _("Please note that websites and other wallets may not support these addresses yet."),
+            _("Thus, you might want to keep using a non-segwit wallet in order to be able to receive bitcoins during the transition period.")
         ])
         choices = [
             ('create_standard_seed', _('Standard')),
+            #('create_segwit_seed', _('Segwit')),
         ]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.run)
 
+    def create_segwit_seed(self): self.create_seed('segwit')
     def create_standard_seed(self): self.create_seed('standard')
 
     def create_seed(self, seed_type):

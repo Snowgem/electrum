@@ -17,15 +17,15 @@ from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.utils import platform
 
-from electrum_zcash.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds, Fiat
-from electrum_zcash import bitcoin
-from electrum_zcash.util import timestamp_to_datetime
-from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum.util import profiler, parse_URI, format_time, InvalidPassword, NotEnoughFunds
+from electrum import bitcoin
+from electrum.util import timestamp_to_datetime
+from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from .context_menu import ContextMenu
 
 
-from electrum_zcash_gui.kivy.i18n import _
+from electrum_gui.kivy.i18n import _
 
 
 class CScreen(Factory.Screen):
@@ -131,6 +131,7 @@ class HistoryScreen(CScreen):
         status, status_str = self.app.wallet.get_tx_status(tx_hash, height, conf, timestamp)
         icon = "atlas://gui/kivy/theming/light/" + TX_ICONS[status]
         label = self.app.wallet.get_label(tx_hash) if tx_hash else _('Pruned transaction outputs')
+        date = timestamp_to_datetime(timestamp)
         ri = self.cards.get(tx_hash)
         if ri is None:
             ri = Factory.HistoryItem()
@@ -145,11 +146,8 @@ class HistoryScreen(CScreen):
             ri.is_mine = value < 0
             if value < 0: value = - value
             ri.amount = self.app.format_amount_and_units(value)
-            if self.app.fiat_unit:
-                fx = self.app.fx
-                fiat_value = value / Decimal(bitcoin.COIN) * self.app.wallet.price_at_timestamp(tx_hash, fx.timestamp_rate)
-                fiat_value = Fiat(fiat_value, fx.ccy)
-                ri.quote_text = str(fiat_value)
+            if self.app.fiat_unit and date:
+                ri.quote_text = self.app.fx.historical_value_str(value, date) + ' ' + self.app.fx.ccy
         return ri
 
     def update(self, see_all=False):
@@ -170,9 +168,9 @@ class SendScreen(CScreen):
     payment_request = None
 
     def set_URI(self, text):
-        import electrum_zcash
+        import electrum
         try:
-            uri = electrum_zcash.util.parse_URI(text, self.app.on_pr)
+            uri = electrum.util.parse_URI(text, self.app.on_pr)
         except:
             self.app.show_info(_("Not a SnowGem URI"))
             return
@@ -209,10 +207,10 @@ class SendScreen(CScreen):
         if not self.screen.address:
             return
         if self.screen.is_pr:
-            # it should be already saved
+            # it sould be already saved
             return
         # save address as invoice
-        from electrum_zcash.paymentrequest import make_unsigned_request, PaymentRequest
+        from electrum.paymentrequest import make_unsigned_request, PaymentRequest
         req = {'address':self.screen.address, 'memo':self.screen.message}
         amount = self.app.get_amount(self.screen.amount) if self.screen.amount else 0
         req['amount'] = amount
@@ -256,9 +254,14 @@ class SendScreen(CScreen):
             outputs = [(bitcoin.TYPE_ADDRESS, address, amount)]
         message = self.screen.message
         amount = sum(map(lambda x:x[2], outputs))
-        self._do_send(amount, message, outputs)
+        if self.app.electrum_config.get('use_rbf'):
+            from .dialogs.question import Question
+            d = Question(_('Should this transaction be replaceable?'), lambda b: self._do_send(amount, message, outputs, b))
+            d.open()
+        else:
+            self._do_send(amount, message, outputs, False)
 
-    def _do_send(self, amount, message, outputs):
+    def _do_send(self, amount, message, outputs, rbf):
         # make unsigned transaction
         config = self.app.electrum_config
         coins = self.app.wallet.get_spendable_coins(None, config)
@@ -271,6 +274,8 @@ class SendScreen(CScreen):
             traceback.print_exc(file=sys.stdout)
             self.app.show_error(str(e))
             return
+        if rbf:
+            tx.set_rbf(True)
         fee = tx.get_fee()
         msg = [
             _("Amount to be sent") + ": " + self.app.format_amount_and_units(amount),
@@ -340,7 +345,7 @@ class ReceiveScreen(CScreen):
         Clock.schedule_once(lambda dt: self.update_qr())
 
     def get_URI(self):
-        from electrum_zcash.util import create_URI
+        from electrum.util import create_URI
         amount = self.screen.amount
         if amount:
             a, u = self.screen.amount.split()
@@ -453,7 +458,7 @@ class TabbedCarousel(Factory.TabbedPanel):
         self.current_tab.state = "normal"
         header.state = 'down'
         self._current_tab = header
-        # set the carousel to load the appropriate slide
+        # set the carousel to load  the appropriate slide
         # saved in the screen attribute of the tab head
         slide = carousel.slides[header.slide]
         if carousel.current_slide != slide:

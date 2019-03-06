@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2018 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person

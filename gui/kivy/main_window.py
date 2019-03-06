@@ -7,15 +7,15 @@ import traceback
 from decimal import Decimal
 import threading
 
-import electrum_zcash
-from electrum_zcash.bitcoin import TYPE_ADDRESS
-from electrum_zcash import WalletStorage, Wallet
-from electrum_zcash_gui.kivy.i18n import _
-from electrum_zcash.paymentrequest import InvoiceStore
-from electrum_zcash.util import profiler, InvalidPassword
-from electrum_zcash.plugins import run_hook
-from electrum_zcash.util import format_satoshis, format_satoshis_plain
-from electrum_zcash.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+import electrum
+from electrum.bitcoin import TYPE_ADDRESS
+from electrum import WalletStorage, Wallet
+from electrum_gui.kivy.i18n import _
+from electrum.paymentrequest import InvoiceStore
+from electrum.util import profiler, InvalidPassword
+from electrum.plugins import run_hook
+from electrum.util import format_satoshis, format_satoshis_plain
+from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
 
 from kivy.app import App
 from kivy.core.window import Window
@@ -30,10 +30,10 @@ from kivy.metrics import inch
 from kivy.lang import Builder
 
 ## lazy imports for factory so that widgets can be used in kv
-#Factory.register('InstallWizard', module='electrum_zcash_gui.kivy.uix.dialogs.installwizard')
-#Factory.register('InfoBubble', module='electrum_zcash_gui.kivy.uix.dialogs')
-#Factory.register('OutputList', module='electrum_zcash_gui.kivy.uix.dialogs')
-#Factory.register('OutputItem', module='electrum_zcash_gui.kivy.uix.dialogs')
+#Factory.register('InstallWizard', module='electrum_gui.kivy.uix.dialogs.installwizard')
+#Factory.register('InfoBubble', module='electrum_gui.kivy.uix.dialogs')
+#Factory.register('OutputList', module='electrum_gui.kivy.uix.dialogs')
+#Factory.register('OutputItem', module='electrum_gui.kivy.uix.dialogs')
 
 from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble
@@ -48,14 +48,14 @@ util = False
 
 # register widget cache for keeping memory down timeout to forever to cache
 # the data
-Cache.register('electrum_zcash_widgets', timeout=0)
+Cache.register('electrum_widgets', timeout=0)
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
 from kivy.core.clipboard import Clipboard
 
-Factory.register('TabbedCarousel', module='electrum_zcash_gui.kivy.uix.screens')
+Factory.register('TabbedCarousel', module='electrum_gui.kivy.uix.screens')
 
 # Register fonts without this you won't be able to use bold/italic...
 # inside markup.
@@ -67,7 +67,7 @@ Label.register('Roboto',
                'gui/kivy/data/fonts/Roboto-Bold.ttf')
 
 
-from electrum_zcash.util import base_units
+from electrum.util import base_units
 
 
 class ElectrumWindow(App):
@@ -99,7 +99,7 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from electrum_zcash import constants
+            from electrum import constants
             pp = servers.get(host, constants.net.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
@@ -119,6 +119,10 @@ class ElectrumWindow(App):
         if len(names) >1:
             ChoiceDialog(_('Choose your chain'), names, '', cb).open()
 
+    use_rbf = BooleanProperty(False)
+    def on_use_rbf(self, instance, x):
+        self.electrum_config.set_key('use_rbf', self.use_rbf, True)
+
     use_change = BooleanProperty(False)
     def on_use_change(self, instance, x):
         self.electrum_config.set_key('use_change', self.use_change, True)
@@ -132,7 +136,7 @@ class ElectrumWindow(App):
         self.send_screen.set_URI(uri)
 
     def on_new_intent(self, intent):
-        if intent.getScheme() != 'zcash':
+        if intent.getScheme() != 'bitcoin':
             return
         uri = intent.getDataString()
         self.set_URI(uri)
@@ -244,7 +248,7 @@ class ElectrumWindow(App):
 
         App.__init__(self)#, **kwargs)
 
-        title = _('Electrum App')
+        title = _('SnowGem Electrum App')
         self.electrum_config = config = kwargs.get('config', None)
         self.language = config.get('language', 'en')
         self.network = network = kwargs.get('network', None)
@@ -262,10 +266,11 @@ class ElectrumWindow(App):
         self.daemon = self.gui_object.daemon
         self.fx = self.daemon.fx
 
+        self.use_rbf = config.get('use_rbf', True)
         self.use_change = config.get('use_change', True)
         self.use_unconfirmed = not config.get('confirmed_only', False)
 
-        # create triggers so as to minimize updating a max of 2 times a sec
+        # create triggers so as to minimize updation a max of 2 times a sec
         self._trigger_update_wallet = Clock.create_trigger(self.update_wallet, .5)
         self._trigger_update_status = Clock.create_trigger(self.update_status, .5)
         self._trigger_update_history = Clock.create_trigger(self.update_history, .5)
@@ -298,17 +303,17 @@ class ElectrumWindow(App):
             self.send_screen.do_clear()
 
     def on_qr(self, data):
-        from electrum_zcash.bitcoin import base_decode, is_address
+        from electrum.bitcoin import base_decode, is_address
         data = data.strip()
         if is_address(data):
             self.set_URI(data)
             return
-        if data.startswith('zcash:'):
+        if data.startswith('snowgem:'):
             self.set_URI(data)
             return
         # try to decode transaction
-        from electrum_zcash.transaction import Transaction
-        from electrum_zcash.util import bh2u
+        from electrum.transaction import Transaction
+        from electrum.util import bh2u
         try:
             text = bh2u(base_decode(data, None, base=43))
             tx = Transaction(text)
@@ -345,7 +350,7 @@ class ElectrumWindow(App):
         self.receive_screen.screen.address = addr
 
     def show_pr_details(self, req, status, is_invoice):
-        from electrum_zcash.util import format_time
+        from electrum.util import format_time
         requestor = req.get('requestor')
         exp = req.get('exp')
         memo = req.get('memo')
@@ -367,7 +372,7 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from electrum_zcash.util import format_time
+        from electrum.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
         popup = Builder.load_file('gui/kivy/uix/ui_screens/invoice.kv')
@@ -395,15 +400,12 @@ class ElectrumWindow(App):
         intent = Intent(PythonActivity.mActivity, SimpleScannerActivity)
 
         def on_qr_result(requestCode, resultCode, intent):
-            try:
-                if resultCode == -1:  # RESULT_OK:
-                    #  this doesn't work due to some bug in jnius:
-                    # contents = intent.getStringExtra("text")
-                    String = autoclass("java.lang.String")
-                    contents = intent.getStringExtra(String("text"))
-                    on_complete(contents)
-            finally:
-                activity.unbind(on_activity_result=on_qr_result)
+            if resultCode == -1:  # RESULT_OK:
+                #  this doesn't work due to some bug in jnius:
+                # contents = intent.getStringExtra("text")
+                String = autoclass("java.lang.String")
+                contents = intent.getStringExtra(String("text"))
+                on_complete(contents)
         activity.bind(on_activity_result=on_qr_result)
         PythonActivity.mActivity.startActivityForResult(intent, 0)
 
@@ -450,7 +452,7 @@ class ElectrumWindow(App):
         self.fiat_unit = self.fx.ccy if self.fx.is_enabled() else ''
         # default tab
         self.switch_to('history')
-        # bind intent for zcash: URI scheme
+        # bind intent for snowgem: URI scheme
         if platform == 'android':
             from android import activity
             from jnius import autoclass
@@ -497,7 +499,7 @@ class ElectrumWindow(App):
             else:
                 self.load_wallet(wallet)
         else:
-            Logger.debug('Electrum: Wallet not found. Launching install wizard')
+            Logger.debug('SnowGem Electrum: Wallet not found. Launching install wizard')
             storage = WalletStorage(path)
             wizard = Factory.InstallWizard(self.electrum_config, storage)
             wizard.bind(on_wizard_complete=self.on_wizard_complete)
@@ -573,13 +575,13 @@ class ElectrumWindow(App):
 
         #setup lazy imports for mainscreen
         Factory.register('AnimatedPopup',
-                         module='electrum_zcash_gui.kivy.uix.dialogs')
+                         module='electrum_gui.kivy.uix.dialogs')
         Factory.register('QRCodeWidget',
-                         module='electrum_zcash_gui.kivy.uix.qrcodewidget')
+                         module='electrum_gui.kivy.uix.qrcodewidget')
 
         # preload widgets. Remove this if you want to load the widgets on demand
-        #Cache.append('electrum_zcash_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
-        #Cache.append('electrum_zcash_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
+        #Cache.append('electrum_widgets', 'AnimatedPopup', Factory.AnimatedPopup())
+        #Cache.append('electrum_widgets', 'QRCodeWidget', Factory.QRCodeWidget())
 
         # load and focus the ui
         self.root.manager = self.root.ids['manager']
@@ -629,6 +631,7 @@ class ElectrumWindow(App):
             self.receive_screen.clear()
         self.update_tabs()
         run_hook('load_wallet', wallet, self)
+        print('load wallet done', self.wallet)
 
     def update_status(self, *dt):
         self.num_blocks = self.network.get_local_height()
@@ -647,7 +650,10 @@ class ElectrumWindow(App):
             else:
                 status = ''
         else:
-            status = _("Disconnected")
+            if(self.network.is_downloading()):
+                status = _("Downloading, please wait...")   
+            else:
+                status = _("Disconnected")
         self.status = self.wallet.basename() + (' [size=15dp](%s)[/size]'%status if status else '')
         # balance
         c, u, x = self.wallet.get_balance()
@@ -657,8 +663,6 @@ class ElectrumWindow(App):
 
     def get_max_amount(self):
         inputs = self.wallet.get_spendable_coins(None, self.electrum_config)
-        if not inputs:
-            return ''
         addr = str(self.send_screen.screen.address) or self.wallet.dummy_address()
         outputs = [(TYPE_ADDRESS, addr, '!')]
         tx = self.wallet.make_unsigned_transaction(inputs, outputs, self.electrum_config)
@@ -685,7 +689,7 @@ class ElectrumWindow(App):
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
             notification.notify('Electrum', message,
-                            app_icon=icon, app_name='Electrum')
+                            app_icon=icon, app_name='SnowGem Electrum')
         except ImportError:
             Logger.Error('Notification: needs plyer; `sudo pip install plyer`')
 
@@ -723,7 +727,7 @@ class ElectrumWindow(App):
     def show_error(self, error, width='200dp', pos=None, arrow_pos=None,
         exit=False, icon='atlas://gui/kivy/theming/light/error', duration=0,
         modal=False):
-        ''' Show an error Message Bubble.
+        ''' Show a error Message Bubble.
         '''
         self.show_info_bubble( text=error, icon=icon, width=width,
             pos=pos or Window.center, arrow_pos=arrow_pos, exit=exit,
@@ -731,7 +735,7 @@ class ElectrumWindow(App):
 
     def show_info(self, error, width='200dp', pos=None, arrow_pos=None,
         exit=False, duration=0, modal=False):
-        ''' Show an Info Message Bubble.
+        ''' Show a Info Message Bubble.
         '''
         self.show_error(error, icon='atlas://gui/kivy/theming/light/important',
             duration=duration, modal=modal, exit=exit, pos=pos,
@@ -739,7 +743,7 @@ class ElectrumWindow(App):
 
     def show_info_bubble(self, text=_('Hello World'), pos=None, duration=0,
         arrow_pos='bottom_mid', width=None, icon='', modal=False, exit=False):
-        '''Method to show an Information Bubble
+        '''Method to show a Information Bubble
 
         .. parameters::
             text: Message to be displayed

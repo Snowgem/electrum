@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2018 The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
@@ -41,51 +41,71 @@ class BitcoinMainnet:
 
     TESTNET = False
     WIF_PREFIX = 0x80
-    ADDRTYPE_P2PKH = bytes.fromhex('1C28')
-    ADDRTYPE_P2SH = bytes.fromhex('1C2D')
+    ADDRTYPE_P2PKH = [0x1C, 0x28]
+    ADDRTYPE_P2SH = [0x1C, 0x2D]
+    ADDRTYPE_SHIELDED = [0x16, 0x9A]
+    SEGWIT_HRP = "bc"
     GENESIS = "00068b35729d9d2b0c294ff1fe9af0094740524311a131de40e7f705e4c29a5b"
-    DEFAULT_PORTS = {'t': '50021', 's': '50022'}
+    DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = read_json('servers.json', {})
     CHECKPOINTS = read_json('checkpoints.json', [])
-
-
-    XPRV_HEADERS = {
-        'standard':    0x0488ade4,  # xprv
-    }
-    XPUB_HEADERS = {
-        'standard':    0x0488b21e,  # xpub
-    }
+    HEADERS_URL = "http://electrum.snowgem.org/blockchain_headers"
+    EQUIHASH_N = 200
+    EQUIHASH_K = 9
+    EQUIHASH_N_NEW = 144
+    EQUIHASH_K_NEW = 5
+    FORK_BLOCK = 266000
 
     EQUIHASH_FORK_HEIGHT = 266001
     OVERWINTER_HEIGHT = 520000
+    XPRV_HEADERS = {
+        'standard': 0x0488ade4,
+        'p2wpkh-p2sh': 0x049d7878,
+        'p2wsh-p2sh': 0x295b005,
+        'p2wpkh': 0x4b2430c,
+        'p2wsh': 0x2aa7a99
+    }
+    XPUB_HEADERS = {
+        'standard': 0x0488b21e,
+        'p2wpkh-p2sh': 0x049d7cb2,
+        'p2wsh-p2sh': 0x295b43f,
+        'p2wpkh': 0x4b24746,
+        'p2wsh': 0x2aa7ed3
+    }
 
 
 class BitcoinTestnet:
 
     TESTNET = True
-    WIF_PREFIX = 0xEF
-    ADDRTYPE_P2PKH = bytes.fromhex('1D25')
-    ADDRTYPE_P2SH = bytes.fromhex('1CBA')
-    GENESIS = "05a60a92d99d85997cce3b87616c089f6124d7342af37106edc76126334a2c38"
-    DEFAULT_PORTS = {'t': '51021', 's': '51022'}
+    WIF_PREFIX = 0xef
+    ADDRTYPE_P2PKH = [0x1D, 0x25]
+    ADDRTYPE_P2SH = [0x1C, 0xBA]
+    ADDRTYPE_SHIELDED = [0x16, 0xB6]
+    SEGWIT_HRP = "tb"
+    GENESIS = "0739bced3341885cf221cf22b5e91cdb0f5da3cb34da982167c4c900723c725a"
+    DEFAULT_PORTS = {'t': '51001', 's': '51002'}
     DEFAULT_SERVERS = read_json('servers_testnet.json', {})
     CHECKPOINTS = read_json('checkpoints_testnet.json', [])
-
+    EQUIHASH_N = 200
+    EQUIHASH_K = 9
+    CHUNK_SIZE = 200
+    HEADERS_URL = ""
     XPRV_HEADERS = {
-        'standard':    0x04358394,  # tprv
+        'standard': 0x0488ade4,
+        'p2wpkh-p2sh': 0x049d7878,
+        'p2wsh-p2sh': 0x295b005,
+        'p2wpkh': 0x4b2430c,
+        'p2wsh': 0x2aa7a99
     }
     XPUB_HEADERS = {
-        'standard':    0x043587cf,  # tpub
+        'standard': 0x0488b21e,
+        'p2wpkh-p2sh': 0x049d7cb2,
+        'p2wsh-p2sh': 0x295b43f,
+        'p2wpkh': 0x4b24746,
+        'p2wsh': 0x2aa7ed3
     }
     EQUIHASH_FORK_HEIGHT = 200000
     OVERWINTER_HEIGHT = 207500
-
-
-class BitcoinRegtest(BitcoinTestnet):
-
-    GENESIS = "029f11d80ef9765602235e1bc9727e3eb6ba20839319f761fee920d63401e327"
-    DEFAULT_SERVERS = read_json('servers_regtest.json', {})
-    CHECKPOINTS = []
 
 
 # don't import net directly, import the module instead (so that net is singleton)
@@ -100,8 +120,3 @@ def set_mainnet():
 def set_testnet():
     global net
     net = BitcoinTestnet
-
-
-def set_regtest():
-    global net
-    net = BitcoinRegtest

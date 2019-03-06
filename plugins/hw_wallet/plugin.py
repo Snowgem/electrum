@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- mode: python -*-
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2016  The Electrum developers
 #
 # Permission is hereby granted, free of charge, to any person
@@ -24,8 +24,8 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from electrum_zcash.plugins import BasePlugin, hook
-from electrum_zcash.i18n import _
+from electrum.plugins import BasePlugin, hook
+from electrum.i18n import _
 
 
 class HW_PluginBase(BasePlugin):

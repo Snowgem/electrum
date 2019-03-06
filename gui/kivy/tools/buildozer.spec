@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = Electrum
+title = SnowGem Electrum
 
 # (str) Package name
-package.name = Electrum
+package.name = Electrum_XSG
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = cash.z.electrum
+package.domain = org.electrum_xsg
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -24,14 +24,14 @@ source.exclude_dirs = bin, build, dist, contrib, gui/qt, gui/kivy/tools, gui/kiv
 source.exclude_patterns = Makefile,setup*
 
 # (str) Application versioning (method 1)
-version.regex = version_apk = '(.*)'
-version.filename = %(source.dir)s/contrib/versions.py
+#version.regex = version_apk = '(.*)'
+#version.filename = %(source.dir)s/contrib/versions.py
 
 # (str) Application versioning (method 2)
-#version = 1.9.8
+version = 2.0.1
 
 # (list) Application requirements
-requirements = python3crystax, android, openssl, plyer, kivy==master
+requirements = python3crystax==3.6, android, openssl, plyer, kivy==master
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/gui/kivy/theming/splash.png
@@ -106,9 +106,6 @@ android.add_activities = org.electrum.qr.SimpleScannerActivity
 
 # (str) XML file to include as an intent filters in <activity> tag
 android.manifest.intent_filters = gui/kivy/tools/bitcoin_intent.xml
-
-# (str) launchMode to set for the main activity
-android.manifest.launch_mode = singleTask
 
 # (list) Android additionnal libraries to copy into libs/armeabi
 #android.add_libs_armeabi = lib/android/*.so

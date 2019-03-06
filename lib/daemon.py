@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -186,9 +186,6 @@ class Daemon(DaemonThread):
         elif sub == 'status':
             if self.network:
                 p = self.network.get_parameters()
-                current_wallet = self.cmd_runner.wallet
-                current_wallet_path = current_wallet.storage.path \
-                                      if current_wallet else None
                 response = {
                     'path': self.network.config.path,
                     'server': p[0],
@@ -200,7 +197,6 @@ class Daemon(DaemonThread):
                     'version': ELECTRUM_VERSION,
                     'wallets': {k: w.is_up_to_date()
                                 for k, w in self.wallets.items()},
-                    'current_wallet': current_wallet_path,
                     'fee_per_kb': self.config.fee_per_kb(),
                 }
             else:
@@ -305,7 +301,7 @@ class Daemon(DaemonThread):
         gui_name = config.get('gui', 'qt')
         if gui_name in ['lite', 'classic']:
             gui_name = 'qt'
-        gui = __import__('electrum_zcash_gui.' + gui_name, fromlist=['electrum_zcash_gui'])
+        gui = __import__('electrum_gui.' + gui_name, fromlist=['electrum_gui'])
         self.gui = gui.ElectrumGui(config, self, plugins)
         try:
             self.gui.main()

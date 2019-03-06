@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2013 ecdsa@github
 #
 # Permission is hereby granted, free of charge, to any person
@@ -23,13 +23,13 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from electrum_zcash.i18n import _
-from electrum_zcash.mnemonic import Mnemonic
-import electrum_zcash.old_mnemonic
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from electrum.i18n import _
 
 from .util import *
 from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
-from .completion_text_edit import CompletionTextEdit
 
 
 def seed_warning_msg(seed):
@@ -92,7 +92,7 @@ class SeedLayout(QVBoxLayout):
         self.options = options
         if title:
             self.addWidget(WWLabel(title))
-        self.seed_e = CompletionTextEdit()
+        self.seed_e = ButtonsTextEdit()
         if seed:
             self.seed_e.setText(seed)
         else:
@@ -100,14 +100,11 @@ class SeedLayout(QVBoxLayout):
             self.is_seed = is_seed
             self.saved_is_seed = self.is_seed
             self.seed_e.textChanged.connect(self.on_edit)
-            self.initialize_completer()
-
         self.seed_e.setMaximumHeight(75)
         hbox = QHBoxLayout()
         if icon:
             logo = QLabel()
-            logo.setPixmap(QPixmap(":icons/seed.png")
-                               .scaledToWidth(64, Qt.SmoothTransformation))
+            logo.setPixmap(QPixmap(":icons/seed.png").scaledToWidth(64))
             logo.setMaximumWidth(60)
             hbox.addWidget(logo)
         hbox.addWidget(self.seed_e)
@@ -134,39 +131,25 @@ class SeedLayout(QVBoxLayout):
             self.seed_warning.setText(seed_warning_msg(seed))
         self.addWidget(self.seed_warning)
 
-    def initialize_completer(self):
-        english_list = Mnemonic('en').wordlist
-        old_list = electrum_zcash.old_mnemonic.words
-        self.wordlist = english_list + list(set(old_list) - set(english_list)) #concat both lists
-        self.wordlist.sort()
-        self.completer = QCompleter(self.wordlist)
-        self.seed_e.set_completer(self.completer)
-
     def get_seed(self):
         text = self.seed_e.text()
         return ' '.join(text.split())
 
     def on_edit(self):
-        from electrum_zcash.bitcoin import seed_type
+        from electrum.bitcoin import seed_type
         s = self.get_seed()
         b = self.is_seed(s)
         if not self.is_bip39:
             t = seed_type(s)
             label = _('Seed Type') + ': ' + t if t else ''
         else:
-            from electrum_zcash.keystore import bip39_is_checksum_valid
+            from electrum.keystore import bip39_is_checksum_valid
             is_checksum, is_wordlist = bip39_is_checksum_valid(s)
             status = ('checksum: ' + ('ok' if is_checksum else 'failed')) if is_wordlist else 'unknown wordlist'
             label = 'BIP39' + ' (%s)'%status
         self.seed_type_label.setText(label)
         self.parent.next_button.setEnabled(b)
 
-        # to account for bip39 seeds
-        for word in self.get_seed().split(" ")[:-1]:
-            if word not in self.wordlist:
-                self.seed_e.disable_suggestions()
-                return
-        self.seed_e.enable_suggestions()
 
 class KeysLayout(QVBoxLayout):
     def __init__(self, parent=None, title=None, is_valid=None, allow_multi=False):
@@ -189,7 +172,7 @@ class KeysLayout(QVBoxLayout):
 class SeedDialog(WindowModalDialog):
 
     def __init__(self, parent, seed, passphrase):
-        WindowModalDialog.__init__(self, parent, ('Electrum - ' + _('Seed')))
+        WindowModalDialog.__init__(self, parent, ('SnowGem Electrum - ' + _('Seed')))
         self.setMinimumWidth(400)
         vbox = QVBoxLayout(self)
         title =  _("Your wallet generation seed is:")

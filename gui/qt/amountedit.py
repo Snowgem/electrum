@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import (QLineEdit, QStyle, QStyleOptionFrame)
 
 from decimal import Decimal
-from electrum_zcash.util import format_satoshis_plain
+from electrum.util import format_satoshis_plain
 
 
 class MyLineEdit(QLineEdit):
@@ -21,8 +21,8 @@ class AmountEdit(MyLineEdit):
 
     def __init__(self, base_unit, is_int = False, parent=None):
         QLineEdit.__init__(self, parent)
-        # This seems sufficient for hundred-BTC amounts with 8 decimals
-        self.setFixedWidth(180)
+        # This seems sufficient for hundred-XSG amounts with 8 decimals
+        self.setFixedWidth(140)
         self.base_unit = base_unit
         self.textChanged.connect(self.numbify)
         self.is_int = is_int
@@ -86,7 +86,7 @@ class BTCAmountEdit(AmountEdit):
         if p == 5:
             return 'mXSG'
         if p == 2:
-            return 'uXSG'
+            return 'bits'
         raise Exception('Unknown base unit')
 
     def get_amount(self):
@@ -106,10 +106,10 @@ class BTCAmountEdit(AmountEdit):
 
 class FeerateEdit(BTCAmountEdit):
     def _base_unit(self):
-        return 'sat/kB'
+        return 'sat/byte'
 
     def get_amount(self):
-        sat_per_kb_amount = BTCAmountEdit.get_amount(self)
-        if sat_per_kb_amount is None:
+        sat_per_byte_amount = BTCAmountEdit.get_amount(self)
+        if sat_per_byte_amount is None:
             return None
-        return sat_per_kb_amount
+        return 1000 * sat_per_byte_amount

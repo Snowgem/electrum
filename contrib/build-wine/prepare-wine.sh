@@ -86,6 +86,8 @@ echo "done"
 
 wine 'wineboot'
 
+mkdir -p /tmp/electrum-build
+
 cd /tmp/electrum-build
 
 # Install Python
@@ -102,8 +104,8 @@ for server in $(shuf -e ha.pool.sks-keyservers.net \
 done
 for msifile in core dev exe lib pip tools; do
     echo "Installing $msifile..."
-    wget -N -c "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi"
-    wget -N -c "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi.asc"
+    wget -nc "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi"
+    wget -nc "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi.asc"
     verify_signature "${msifile}.msi.asc" $KEYRING_PYTHON_DEV
     wine msiexec /i "${msifile}.msi" /qb TARGETDIR=C:/python$PYTHON_VERSION
 done
@@ -137,9 +139,14 @@ wine "$PWD/$NSIS_FILENAME" /S
 
 download_if_not_exist $LIBUSB_FILENAME "$LIBUSB_URL"
 verify_hash $LIBUSB_FILENAME "$LIBUSB_SHA256"
-7z x -olibusb $LIBUSB_FILENAME -aoa
+7z x -olibusb $LIBUSB_FILENAME -aos
 
 cp libusb/MS32/dll/libusb-1.0.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/
+
+# Install UPX
+#wget -O upx.zip "https://downloads.sourceforge.net/project/upx/upx/3.08/upx308w.zip"
+#unzip -o upx.zip
+#cp upx*/upx.exe .
 
 # add dlls needed for pyinstaller:
 cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $WINEPREFIX/drive_c/python$PYTHON_VERSION/

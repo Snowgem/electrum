@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2011 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -34,7 +34,7 @@ from functools import wraps
 from decimal import Decimal
 
 from .import util
-from .util import bfh, bh2u, format_satoshis, json_decode, print_error, json_encode
+from .util import bfh, bh2u, format_satoshis, json_decode, print_error
 from .import bitcoin
 from .bitcoin import is_address,  hash_160, COIN, TYPE_ADDRESS
 from .i18n import _
@@ -81,7 +81,7 @@ def command(s):
             wallet = args[0].wallet
             password = kwargs.get('password')
             if c.requires_wallet and wallet is None:
-                raise Exception("wallet not loaded. Use 'electrum daemon load_wallet'")
+                raise BaseException("wallet not loaded. Use 'electrum daemon load_wallet'")
             if c.requires_password and password is None and wallet.has_password():
                 return {'error': 'Password required' }
             return func(*args, **kwargs)
@@ -123,17 +123,17 @@ class Commands:
         return ' '.join(sorted(known_commands.keys()))
 
     @command('')
-    def create(self):
+    def create(self, segwit=False):
         """Create a new wallet"""
-        raise Exception('Not a JSON-RPC command')
+        raise BaseException('Not a JSON-RPC command')
 
     @command('wn')
     def restore(self, text):
         """Restore a wallet from text. Text can be a seed phrase, a master
-        public key, a master private key, a list of SnowGem addresses
-        or SnowGem private keys. If you want to be prompted for your
+        public key, a master private key, a list of bitcoin addresses
+        or bitcoin private keys. If you want to be prompted for your
         seed, type '?' or ':' (concealed) """
-        raise Exception('Not a JSON-RPC command')
+        raise BaseException('Not a JSON-RPC command')
 
     @command('wp')
     def password(self, password=None, new_password=None):
@@ -150,28 +150,19 @@ class Commands:
         """Return a configuration variable. """
         return self.config.get(key)
 
-    @classmethod
-    def _setconfig_normalize_value(cls, key, value):
-        if key not in ('rpcuser', 'rpcpassword'):
-            value = json_decode(value)
-            try:
-                value = ast.literal_eval(value)
-            except:
-                pass
-        return value
-
     @command('')
     def setconfig(self, key, value):
         """Set a configuration variable. 'value' may be a string or a Python expression."""
-        value = self._setconfig_normalize_value(key, value)
+        if key not in ('rpcuser', 'rpcpassword'):
+            value = json_decode(value)
         self.config.set_key(key, value)
         return True
 
     @command('')
-    def make_seed(self, nbits=132, language=None):
+    def make_seed(self, nbits=132, language=None, segwit=False):
         """Create a seed"""
         from .mnemonic import Mnemonic
-        t = 'standard'
+        t = 'segwit' if segwit else 'standard'
         s = Mnemonic(language).make_seed(t, nbits)
         return s
 
@@ -321,8 +312,7 @@ class Commands:
         """Return the balance of any address. Note: This is a walletless
         server query, results are not checked by SPV.
         """
-        sh = bitcoin.address_to_scripthash(address)
-        out = self.network.synchronous_get(('blockchain.scripthash.get_balance', [sh]))
+        out = self.network.synchronous_get(('blockchain.address.get_balance', [address]))
         out["confirmed"] =  str(Decimal(out["confirmed"])/COIN)
         out["unconfirmed"] =  str(Decimal(out["unconfirmed"])/COIN)
         return out
@@ -340,7 +330,7 @@ class Commands:
 
     @command('')
     def version(self):
-        """Return the version of Electrum."""
+        """Return the version of electrum."""
         from .version import ELECTRUM_VERSION
         return ELECTRUM_VERSION
 
@@ -377,7 +367,7 @@ class Commands:
             return None
         out = self.wallet.contacts.resolve(x)
         if out.get('type') == 'openalias' and self.nocheck is False and out.get('validated') is False:
-            raise Exception('cannot verify alias', x)
+            raise BaseException('cannot verify alias', x)
         return out['address']
 
     @command('n')
@@ -407,7 +397,7 @@ class Commands:
         message = util.to_bytes(message)
         return bitcoin.verify_message(address, sig, message)
 
-    def _mktx(self, outputs, fee, change_addr, domain, nocheck, unsigned, password, locktime=None):
+    def _mktx(self, outputs, fee, change_addr, domain, nocheck, unsigned, rbf, password, locktime=None):
         self.nocheck = nocheck
         change_addr = self._resolver(change_addr)
         domain = None if domain is None else map(self._resolver, domain)
@@ -421,25 +411,27 @@ class Commands:
         tx = self.wallet.make_unsigned_transaction(coins, final_outputs, self.config, fee, change_addr)
         if locktime != None: 
             tx.locktime = locktime
+        if rbf:
+            tx.set_rbf(True)
         if not unsigned:
             run_hook('sign_tx', self.wallet, tx)
             self.wallet.sign_transaction(tx, password)
         return tx
 
     @command('wp')
-    def payto(self, destination, amount, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, password=None, locktime=None):
+    def payto(self, destination, amount, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=False, password=None, locktime=None):
         """Create a transaction. """
         tx_fee = satoshis(fee)
         domain = from_addr.split(',') if from_addr else None
-        tx = self._mktx([(destination, amount)], tx_fee, change_addr, domain, nocheck, unsigned, password, locktime)
+        tx = self._mktx([(destination, amount)], tx_fee, change_addr, domain, nocheck, unsigned, rbf, password, locktime)
         return tx.as_dict()
 
     @command('wp')
-    def paytomany(self, outputs, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, password=None, locktime=None):
+    def paytomany(self, outputs, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=False, password=None, locktime=None):
         """Create a multi-output transaction. """
         tx_fee = satoshis(fee)
         domain = from_addr.split(',') if from_addr else None
-        tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned, password, locktime)
+        tx = self._mktx(outputs, tx_fee, change_addr, domain, nocheck, unsigned, rbf, password, locktime)
         return tx.as_dict()
 
     @command('w')
@@ -456,11 +448,11 @@ class Commands:
             from .exchange_rate import FxThread
             fx = FxThread(self.config, None)
             kwargs['fx'] = fx
-        return json_encode(self.wallet.get_full_history(**kwargs))
+        return self.wallet.get_full_history(**kwargs)
 
     @command('w')
     def setlabel(self, key, label):
-        """Assign a label to an item. Item may be a SnowGem address or a
+        """Assign a label to an item. Item may be a bitcoin address or a
         transaction ID"""
         self.wallet.set_label(key, label)
 
@@ -518,7 +510,7 @@ class Commands:
             if raw:
                 tx = Transaction(raw)
             else:
-                raise Exception("Unknown transaction")
+                raise BaseException("Unknown transaction")
         return tx.as_dict()
 
     @command('')
@@ -547,7 +539,7 @@ class Commands:
         """Return a payment request"""
         r = self.wallet.get_payment_request(key, self.config)
         if not r:
-            raise Exception("Request not found")
+            raise BaseException("Request not found")
         return self._format_request(r)
 
     #@command('w')
@@ -585,7 +577,7 @@ class Commands:
     @command('w')
     def addrequest(self, amount, memo='', expiration=None, force=False):
         """Create a payment request, using the first unused address of the wallet.
-        The address will be considered as used after this operation.
+        The address will be condidered as used after this operation.
         If no payment is received, the address will be considered as unused if the payment request is deleted from the wallet."""
         addr = self.wallet.get_unused_address()
         if addr is None:
@@ -614,7 +606,7 @@ class Commands:
         "Sign payment request with an OpenAlias"
         alias = self.config.get('alias')
         if not alias:
-            raise Exception('No alias in your configuration')
+            raise BaseException('No alias in your configuration')
         alias_addr = self.wallet.contacts.resolve(alias)['address']
         self.wallet.sign_payment_request(address, alias, alias_addr, password)
 
@@ -631,7 +623,7 @@ class Commands:
 
     @command('n')
     def notify(self, address, URL):
-        """Watch an address. Every time the address changes, a http POST is sent to the URL."""
+        """Watch an address. Everytime the address changes, a http POST is sent to the URL."""
         def callback(x):
             import urllib.request
             headers = {'content-type':'application/json'}
@@ -658,15 +650,6 @@ class Commands:
         to config settings (static/dynamic)"""
         return self.config.fee_per_kb()
 
-    @command('n')
-    def exportcp(self, cpfile):
-        """Export checkpoints to file"""
-        try:
-            self.network.export_checkpoints(cpfile)
-            return 'Exporting checkpoints done'
-        except Exception as e:
-            return 'Error exporting checkpoints: ' + str(e)
-
     @command('')
     def help(self):
         # for the python console
@@ -689,7 +672,6 @@ param_descriptions = {
     'requested_amount': 'Requested amount (in XSG).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
-    'cpfile': 'Checkpoints file',
 }
 
 command_options = {
@@ -708,9 +690,11 @@ command_options = {
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'change_addr': ("-c", "Change address. Default is a spare address, or the source address if it's not in the wallet"),
     'nbits':       (None, "Number of bits of entropy"),
+    'segwit':      (None, "Create segwit seed"),
     'language':    ("-L", "Default language for wordlist"),
     'privkey':     (None, "Private key. Set to '?' to get a prompt."),
     'unsigned':    ("-u", "Do not sign transaction"),
+    'rbf':         (None, "Replace-by-fee transaction"),
     'locktime':    (None, "Set locktime block number"),
     'domain':      ("-D", "List of addresses"),
     'memo':        ("-m", "Description of the request"),
@@ -750,10 +734,10 @@ config_variables = {
         'requests_dir': 'directory where a bip70 file will be written.',
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.z.cash/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
     },
     'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.z.cash/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of snowgem: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
     }
 }
 
@@ -810,7 +794,7 @@ argparse._SubParsersAction.__call__ = subparser_call
 
 
 def add_network_options(parser):
-    parser.add_argument("-1", "--oneserver", action="store_true", dest="oneserver", default=None, help="connect to one server only")
+    parser.add_argument("-1", "--oneserver", action="store_true", dest="oneserver", default=False, help="connect to one server only")
     parser.add_argument("-s", "--server", dest="server", default=None, help="set server host:port:protocol, where protocol is either t (tcp) or s (ssl)")
     parser.add_argument("-p", "--proxy", dest="proxy", default=None, help="set proxy [type:]host[:port], where type is socks4,socks5 or http")
 
@@ -821,7 +805,6 @@ def add_global_options(parser):
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
     group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
-    group.add_argument("--regtest", action="store_true", dest="regtest", default=False, help="Use Regtest")
 
 def get_parser():
     # create main parser
@@ -830,8 +813,8 @@ def get_parser():
     add_global_options(parser)
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
-    parser_gui = subparsers.add_parser('gui', description="Run Electrum Graphical User Interface.", help="Run GUI (default)")
-    parser_gui.add_argument("url", nargs='?', default=None, help="SnowGem URI (or bip70 file)")
+    parser_gui = subparsers.add_parser('gui', description="Run Electrum's Graphical User Interface.", help="Run GUI (default)")
+    parser_gui.add_argument("url", nargs='?', default=None, help="bitcoin URI (or bip70 file)")
     parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
     parser_gui.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")
     parser_gui.add_argument("-m", action="store_true", dest="hide_gui", default=False, help="hide GUI on startup")

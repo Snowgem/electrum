@@ -1,10 +1,10 @@
 import time
 from struct import pack
 
-from electrum_zcash.i18n import _
-from electrum_zcash.util import PrintError, UserCancelled
-from electrum_zcash.keystore import bip39_normalize_passphrase
-from electrum_zcash.bitcoin import serialize_xpub
+from electrum.i18n import _
+from electrum.util import PrintError, UserCancelled
+from electrum.keystore import bip39_normalize_passphrase
+from electrum.bitcoin import serialize_xpub
 
 
 class GuiMixin(object):
@@ -65,20 +65,14 @@ class GuiMixin(object):
             msg = _("Enter a passphrase to generate this wallet.  Each time "
                     "you use this wallet your {} will prompt you for the "
                     "passphrase.  If you forget the passphrase you cannot "
-                    "access the SnowGem coins in the wallet.").format(self.device)
+                    "access the bitcoins in the wallet.").format(self.device)
         else:
             msg = _("Enter the passphrase to unlock this wallet:")
         passphrase = self.handler.get_passphrase(msg, self.creating_wallet)
         if passphrase is None:
             return self.proto.Cancel()
         passphrase = bip39_normalize_passphrase(passphrase)
-
-        ack = self.proto.PassphraseAck(passphrase=passphrase)
-        length = len(ack.passphrase)
-        if length > 50:
-            self.handler.show_error(_("Too long passphrase ({} > 50 chars).").format(length))
-            return self.proto.Cancel()
-        return ack
+        return self.proto.PassphraseAck(passphrase=passphrase)
 
     def callback_PassphraseStateRequest(self, msg):
         return self.proto.PassphraseStateAck()
@@ -149,7 +143,7 @@ class TrezorClientBase(GuiMixin, PrintError):
     def expand_path(n):
         '''Convert bip32 path to list of uint32 integers with prime flags
         0/-1/1' -> [0, 0x80000001, 0x80000001]'''
-        # This code is similar to code in trezorlib where it unfortunately
+        # This code is similar to code in trezorlib where it unforunately
         # is not declared as a staticmethod.  Our n has an extra element.
         PRIME_DERIVATION_FLAG = 0x80000000
         path = []

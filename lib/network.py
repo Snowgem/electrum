@@ -1,4 +1,4 @@
-# Electrum - Lightweight Bitcoin Client
+# Electrum - Lightweight SnowGem Client
 # Copyright (c) 2011-2016 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -43,7 +43,7 @@ from .interface import Connection, Interface
 from . import blockchain
 from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
 from .i18n import _
-
+from . import constants
 
 NODES_RETRY_INTERVAL = 60
 SERVER_RETRY_INTERVAL = 10
@@ -141,8 +141,7 @@ def deserialize_proxy(s):
 
 def deserialize_server(server_str):
     host, port, protocol = str(server_str).rsplit(':', 2)
-    if protocol not in 'st':
-        raise ValueError('invalid network protocol: {}'.format(protocol))
+    assert protocol in 'st'
     int(port)    # Throw if cannot be converted to int
     return host, port, protocol
 
@@ -288,6 +287,9 @@ class Network(util.DaemonThread):
 
     def is_connecting(self):
         return self.connection_status == 'connecting'
+
+    def is_downloading(self):
+        return self.connection_status == 'downloading'
 
     def is_up_to_date(self):
         return self.unanswered_requests == {}
@@ -815,6 +817,7 @@ class Network(util.DaemonThread):
         #interface.print_error("requesting header %d" % height)
         self.queue_request('blockchain.block.headers', [height, 1], interface)
         interface.request = height
+        interface.req_time = time.time()
 
     def on_get_header(self, interface, response, height):
         '''Handle receiving a single block header'''
@@ -830,10 +833,7 @@ class Network(util.DaemonThread):
             interface.print_error(response)
             self.connection_down(interface.server)
             return
-        util.print_error("len(hex_header):", len(hex_header))
-        util.print_error("get_header_size(height)*2:", get_header_size(height)*2)
         if len(hex_header) != get_header_size(height)*2:
-            util.print_error("wrong header length")
             interface.print_error('wrong header length', interface.request)
             self.connection_down(interface.server)
             return
@@ -841,7 +841,6 @@ class Network(util.DaemonThread):
         header = blockchain.deserialize_header(bfh(hex_header), height)
 
         chain = blockchain.check_header(header)
-        util.print_error(chain)
         if interface.mode == 'backward':
             can_connect = blockchain.can_connect(header)
             if can_connect and can_connect.catch_up is None:
@@ -941,9 +940,8 @@ class Network(util.DaemonThread):
                 self.notify('updated')
 
         else:
-            raise Exception(interface.mode)
+            raise BaseException(interface.mode)
         # If not finished, get the next header
-        interface.request = None
         if next_height:
             if interface.mode == 'catch_up' and interface.tip > next_height + 50:
                 self.request_chunk(interface, next_height // CHUNK_LEN)
@@ -951,6 +949,7 @@ class Network(util.DaemonThread):
                 self.request_header(interface, next_height)
         else:
             interface.mode = 'default'
+            interface.request = None
             self.notify('updated')
         # refresh network dialog
         self.notify('interfaces')
@@ -985,7 +984,6 @@ class Network(util.DaemonThread):
             self.process_responses(interface)
 
     def init_headers_file(self):
-        util.print_error("init_headers_file")
         b = self.blockchains[0]
         filename = b.path()
         # len_checkpoints = len(constants.net.CHECKPOINTS)
@@ -1018,7 +1016,7 @@ class Network(util.DaemonThread):
         hex_header = header.get('hex')
         if not height or not hex_header:
             return
-
+        # @TODO txid
         # if len(hex_header) != get_header_size(height)*2:
         #     interface.print_error('wrong header length', interface.request)
         #     self.connection_down(interface.server)
@@ -1032,6 +1030,7 @@ class Network(util.DaemonThread):
         interface.tip = height
         if interface.mode != 'default':
             return
+        self.print_error(header)
         b = blockchain.check_header(header)
         if b:
             interface.blockchain = b
@@ -1087,7 +1086,7 @@ class Network(util.DaemonThread):
                     self.switch_to_interface(i.server)
                     break
         else:
-            raise Exception('blockchain not found', index)
+            raise BaseException('blockchain not found', index)
 
         if self.interface:
             server = self.interface.server
@@ -1106,7 +1105,7 @@ class Network(util.DaemonThread):
         except queue.Empty:
             raise util.TimeoutException(_('Server did not answer'))
         if r.get('error'):
-            raise Exception(r.get('error'))
+            raise BaseException(r.get('error'))
         return r.get('result')
 
     def broadcast(self, tx, timeout=30):

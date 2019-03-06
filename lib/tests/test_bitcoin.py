@@ -9,14 +9,11 @@ from lib.bitcoin import (
     pw_decode, Hash, public_key_from_private_key, address_from_private_key,
     is_address, is_private_key, xpub_from_xprv, is_new_seed, is_old_seed,
     var_int, op_push, address_to_script, regenerate_key,
-    verify_message, deserialize_privkey, serialize_privkey,
+    verify_message, deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
-    xpub_type, is_xprv, is_bip32_derivation, seed_type, EncodeBase58Check)
+    xpub_type, is_xprv, is_bip32_derivation, seed_type)
 from lib.util import bfh
 from lib import constants
-
-from . import TestCaseForTestnet
-
 
 try:
     import ecdsa
@@ -68,18 +65,16 @@ class Test_bitcoin(unittest.TestCase):
 
         sig1 = sign_message_with_wif_privkey(
             'L1TnU2zbNaAqMoVh65Cyvmcjzbrj41Gs9iTLcWbpJCMynXuap6UN', msg1)
-        addr1 = 't1NZqTzJMjwKMcQPxofUEbqRSSotJ7VVJSZ'
+        addr1 = '15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz'
         sig2 = sign_message_with_wif_privkey(
             '5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD', msg2)
-        addr2 = 't1ZFtVnxGSXwNZjnsKVhiAGeEC8nJPuJDDp'
+        addr2 = '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
 
-        print('sig1_b64', sig1_b64)
-        print('sig2_b64', sig2_b64)
-        self.assertEqual(sig1_b64, b'IAcowIh4U6j342ioNfu/jH4OCcy+qtLp9O6P3aoFVk5NbC+UpsCDhBYwlg2R7gsw18TV1QKjDX7JkWaYb9pGdGo=')
-        self.assertEqual(sig2_b64, b'HIszHegFNJvGYqJYvzSqrBtfc1PdbR1fai93xIZUeXr6coc3XrEmEvjKvcyas2mermVUnaCVox944itoZg3bwt8=')
+        self.assertEqual(sig1_b64, b'H/9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y=')
+        self.assertEqual(sig2_b64, b'G84dmJ8TKIDKMT9qBRhpX2sNmR0y5t+POcYnFFJCs66lJmAs3T8A6Sbpx7KA6yTQ9djQMabwQXRrDomOkIKGn18=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
@@ -144,34 +139,56 @@ class Test_bitcoin(unittest.TestCase):
         self.assertEqual(op_push(0x4b), '4b')
         self.assertEqual(op_push(0x4c), '4c4c')
         self.assertEqual(op_push(0xfe), '4cfe')
-        self.assertEqual(op_push(0xff), '4cff')
+        self.assertEqual(op_push(0xff), '4dff00')
         self.assertEqual(op_push(0x100), '4d0001')
         self.assertEqual(op_push(0x1234), '4d3412')
         self.assertEqual(op_push(0xfffe), '4dfeff')
-        self.assertEqual(op_push(0xffff), '4dffff')
+        self.assertEqual(op_push(0xffff), '4effff0000')
         self.assertEqual(op_push(0x10000), '4e00000100')
         self.assertEqual(op_push(0x12345678), '4e78563412')
 
     def test_address_to_script(self):
+        # bech32 native segwit
+        # test vectors from BIP-0173
+        self.assertEqual(address_to_script('BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4'), '0014751e76e8199196d454941c45d1b3a323f1433bd6')
+        self.assertEqual(address_to_script('bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx'), '5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6')
+        self.assertEqual(address_to_script('BC1SW50QA3JX3S'), '6002751e')
+        self.assertEqual(address_to_script('bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj'), '5210751e76e8199196d454941c45d1b3a323')
+
         # base58 P2PKH
-        self.assertEqual(address_to_script('t1MZDS9LxiXasLqR5fMDK4kDa8TJjSFsMsq'), '76a91428662c67561b95c79d2257d2a93d9d151c977e9188ac')
-        self.assertEqual(address_to_script('t1U7SgL7CWNnawSvZD8k8JgwWUygasy2cp1'), '76a914704f4b81cadb7bf7e68c08cd3657220f680f863c88ac')
+        self.assertEqual(address_to_script('14gcRovpkCoGkCNBivQBvw7eso7eiNAbxG'), '76a91428662c67561b95c79d2257d2a93d9d151c977e9188ac')
+        self.assertEqual(address_to_script('1BEqfzh4Y3zzLosfGhw1AsqbEKVW6e1qHv'), '76a914704f4b81cadb7bf7e68c08cd3657220f680f863c88ac')
 
         # base58 P2SH
-        self.assertEqual(address_to_script('t3NSSQe2KNgLcTWy2WsiRAkr7NTtZ15fhLn'), 'a9142a84cf00d47f699ee7bbc1dea5ec1bdecb4ac15487')
-        self.assertEqual(address_to_script('t3grLzdTrjSSiCFXzxV5YCvkYZt2tJjDLau'), 'a914f47c8954e421031ad04ecd8e7752c9479206b9d387')
+        self.assertEqual(address_to_script('35ZqQJcBQMZ1rsv8aSuJ2wkC7ohUCQMJbT'), 'a9142a84cf00d47f699ee7bbc1dea5ec1bdecb4ac15487')
+        self.assertEqual(address_to_script('3PyjzJ3im7f7bcV724GR57edKDqoZvH7Ji'), 'a914f47c8954e421031ad04ecd8e7752c9479206b9d387')
 
 
-class Test_bitcoin_testnet(TestCaseForTestnet):
+class Test_bitcoin_testnet(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        constants.set_testnet()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        constants.set_mainnet()
 
     def test_address_to_script(self):
+        # bech32 native segwit
+        # test vectors from BIP-0173
+        self.assertEqual(address_to_script('tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'), '00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262')
+        self.assertEqual(address_to_script('tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy'), '0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433')
+
         # base58 P2PKH
-        self.assertEqual(address_to_script('tmQ5vePhZkGVbPhJdFd7J9bQF9p5jmVXGe5'), '76a9149da64e300c5e4eb4aaffc9c2fd465348d5618ad488ac')
-        self.assertEqual(address_to_script('tmD3HcYHK21Kypmi3UpSSDEgbSdoTcnduow'), '76a914247d2d5b6334bdfa2038e85b20fc15264f8e5d2788ac')
+        self.assertEqual(address_to_script('mutXcGt1CJdkRvXuN2xoz2quAAQYQ59bRX'), '76a9149da64e300c5e4eb4aaffc9c2fd465348d5618ad488ac')
+        self.assertEqual(address_to_script('miqtaRTkU3U8rzwKbEHx3g8FSz8GJtPS3K'), '76a914247d2d5b6334bdfa2038e85b20fc15264f8e5d2788ac')
 
         # base58 P2SH
-        self.assertEqual(address_to_script('t2Ge2v7dx9Q87aDcx9iDr48uxCEe1gBVzCT'), 'a9146eae23d8c4a941316017946fc761a7a6c85561fb87')
-        self.assertEqual(address_to_script('t2TN9d3YVzoaZqdwyrqZKjz6289tW3JF78v'), 'a914e4567743d378957cd2ee7072da74b1203c1a7a0b87')
+        self.assertEqual(address_to_script('2N3LSvr3hv5EVdfcrxg2Yzecf3SRvqyBE4p'), 'a9146eae23d8c4a941316017946fc761a7a6c85561fb87')
+        self.assertEqual(address_to_script('2NE4ZdmxFmUgwu5wtfoN2gVniyMgRDYq1kk'), 'a914e4567743d378957cd2ee7072da74b1203c1a7a0b87')
 
 
 class Test_xprv_xpub(unittest.TestCase):
@@ -181,6 +198,12 @@ class Test_xprv_xpub(unittest.TestCase):
         {'xprv': 'xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76',
          'xpub': 'xpub6H1LXWLaKsWFhvm6RVpEL9P4KfRZSW7abD2ttkWP3SSQvnyA8FSVqNTEcYFgJS2UaFcxupHiYkro49S8yGasTvXEYBVPamhGW6cFJodrTHy',
          'xtype': 'standard'},
+        {'xprv': 'yprvAJEYHeNEPcyBoQYM7sGCxDiNCTX65u4ANgZuSGTrKN5YCC9MP84SBayrgaMyZV7zvkHrr3HVPTK853s2SPk4EttPazBZBmz6QfDkXeE8Zr7',
+         'xpub': 'ypub6XDth9u8DzXV1tcpDtoDKMf6kVMaVMn1juVWEesTshcX4zUVvfNgjPJLXrD9N7AdTLnbHFL64KmBn3SNaTe69iZYbYCqLCCNPZKbLz9niQ4',
+         'xtype': 'p2wpkh-p2sh'},
+        {'xprv': 'zprvAWgYBBk7JR8GkraNZJeEodAp2UR1VRWJTXyV1ywuUVs1awUgTiBS1ZTDtLA5F3MFDn1LZzu8dUpSKdT7ToDpvEG6PQu4bJs7zQY47Sd3sEZ',
+         'xpub': 'zpub6jftahH18ngZyLeqfLBFAm7YaWFVttE9pku5pNMX2qPzTjoq1FVgZMmhjecyB2nqFb31gHE9vNvbaggU6vvWpNZbXEWLLUjYjFqG95LNyT8',
+         'xtype': 'p2wpkh'},
     )
 
     def _do_test_bip32(self, seed, sequence):
@@ -244,63 +267,6 @@ class Test_xprv_xpub(unittest.TestCase):
         self.assertFalse(is_bip32_derivation(""))
         self.assertFalse(is_bip32_derivation("m/q8462"))
 
-    def test_version_bytes(self):
-        xprv_headers_b58 = {
-            'standard':    'xprv',
-        }
-        xpub_headers_b58 = {
-            'standard':    'xpub',
-        }
-        for xtype, xkey_header_bytes in constants.net.XPRV_HEADERS.items():
-            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
-            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
-
-            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
-
-        for xtype, xkey_header_bytes in constants.net.XPUB_HEADERS.items():
-            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
-            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
-
-            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
-
-
-class Test_xprv_xpub_testnet(TestCaseForTestnet):
-
-    def test_version_bytes(self):
-        xprv_headers_b58 = {
-            'standard':    'tprv',
-        }
-        xpub_headers_b58 = {
-            'standard':    'tpub',
-        }
-        for xtype, xkey_header_bytes in constants.net.XPRV_HEADERS.items():
-            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
-            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
-
-            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
-
-        for xtype, xkey_header_bytes in constants.net.XPUB_HEADERS.items():
-            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
-            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
-
-            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
-            xkey_b58 = EncodeBase58Check(xkey_bytes)
-            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
-
 
 class Test_keyImport(unittest.TestCase):
 
@@ -308,7 +274,7 @@ class Test_keyImport(unittest.TestCase):
            {'priv': 'KzMFjMC2MPadjvX5Cd7b8AKKjjpBSoRKUTpoAtN6B3J9ezWYyXS6',
             'exported_privkey': 'p2pkh:KzMFjMC2MPadjvX5Cd7b8AKKjjpBSoRKUTpoAtN6B3J9ezWYyXS6',
             'pub': '02c6467b7e621144105ed3e4835b0b4ab7e35266a2ae1c4f8baa19e9ca93452997',
-            'address': 't1QTbqnYayRQQ2QZDUgYAcZ6EAcuddyRMbu',
+            'address': '17azqT8T16coRmWKYFj3UjzJuxiYrYFRBR',
             'minikey' : False,
             'txin_type': 'p2pkh',
             'compressed': True,
@@ -317,7 +283,7 @@ class Test_keyImport(unittest.TestCase):
            {'priv': 'p2pkh:Kzj8VjwpZ99bQqVeUiRXrKuX9mLr1o6sWxFMCBJn1umC38BMiQTD',
             'exported_privkey': 'p2pkh:Kzj8VjwpZ99bQqVeUiRXrKuX9mLr1o6sWxFMCBJn1umC38BMiQTD',
             'pub': '0352d78b4b37e0f6d4e164423436f2925fa57817467178eca550a88f2821973c41',
-            'address': 't1ZQHZQpr51Z83vYLkuCgUnA7xgygSNEL8E',
+            'address': '1GXgZ5Qi6gmXTHVSpUPZLy4Ci2nbfb3ZNb',
             'minikey': False,
             'txin_type': 'p2pkh',
             'compressed': True,
@@ -326,7 +292,7 @@ class Test_keyImport(unittest.TestCase):
            {'priv': '5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD',
             'exported_privkey': 'p2pkh:5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD',
             'pub': '04e5fe91a20fac945845a5518450d23405ff3e3e1ce39827b47ee6d5db020a9075422d56a59195ada0035e4a52a238849f68e7a325ba5b2247013e0481c5c7cb3f',
-            'address': 't1ZFtVnxGSXwNZjnsKVhiAGeEC8nJPuJDDp',
+            'address': '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6',
             'minikey': False,
             'txin_type': 'p2pkh',
             'compressed': False,
@@ -335,17 +301,53 @@ class Test_keyImport(unittest.TestCase):
            {'priv': 'p2pkh:5KhYQCe1xd5g2tqpmmGpUWDpDuTbA8vnpbiCNDwMPAx29WNQYfN',
             'exported_privkey': 'p2pkh:5KhYQCe1xd5g2tqpmmGpUWDpDuTbA8vnpbiCNDwMPAx29WNQYfN',
             'pub': '048f0431b0776e8210376c81280011c2b68be43194cb00bd47b7e9aa66284b713ce09556cde3fee606051a07613f3c159ef3953b8927c96ae3dae94a6ba4182e0e',
-            'address': 't1LzMikhRjUTSEzTLdGUBsrBTFZhR9hwffh',
+            'address': '147kiRHHm9fqeMQSgqf4k35XzuWLP9fmmS',
             'minikey': False,
             'txin_type': 'p2pkh',
             'compressed': False,
             'addr_encoding': 'base58',
             'scripthash': '6dd2e07ad2de9ba8eec4bbe8467eb53f8845acff0d9e6f5627391acc22ff62df'},
+           {'priv': 'LHJnnvRzsdrTX2j5QeWVsaBkabK7gfMNqNNqxnbBVRaJYfk24iJz',
+            'exported_privkey': 'p2wpkh-p2sh:Kz9XebiCXL2BZzhYJViiHDzn5iup1povWV8aqstzWU4sz1K5nVva',
+            'pub': '0279ad237ca0d812fb503ab86f25e15ebd5fa5dd95c193639a8a738dcd1acbad81',
+            'address': '3GeVJB3oKr7psgKR6BTXSxKtWUkfsHHhk7',
+            'minikey': False,
+            'txin_type': 'p2wpkh-p2sh',
+            'compressed': True,
+            'addr_encoding': 'base58',
+            'scripthash': 'd7b04e882fa6b13246829ac552a2b21461d9152eb00f0a6adb58457a3e63d7c5'},
+           {'priv': 'p2wpkh-p2sh:L3CZH1pm87X4bbE6mSGvZnAZ1KcFDRomBudUkrkBG7EZhDtBVXMW',
+            'exported_privkey': 'p2wpkh-p2sh:L3CZH1pm87X4bbE6mSGvZnAZ1KcFDRomBudUkrkBG7EZhDtBVXMW',
+            'pub': '0229da20a15b3363b2c28e3c5093c180b56c439df0b968a970366bb1f38435361e',
+            'address': '3C79goMwT7zSTjXnPoCg6VFGAnUpZAkyus',
+            'minikey': False,
+            'txin_type': 'p2wpkh-p2sh',
+            'compressed': True,
+            'addr_encoding': 'base58',
+            'scripthash': '714bf6bfe1083e69539f40d4c7a7dca85d187471b35642e55f20d7e866494cf7'},
+           {'priv': 'L8g5V8kFFeg2WbecahRSdobARbHz2w2STH9S8ePHVSY4fmia7Rsj',
+            'exported_privkey': 'p2wpkh:Kz6SuyPM5VktY5dr2d2YqdVgBA6LCWkiHqXJaC3BzxnMPSUuYzmF',
+            'pub': '03e9f948421aaa89415dc5f281a61b60dde12aae3181b3a76cd2d849b164fc6d0b',
+            'address': 'bc1qqmpt7u5e9hfznljta5gnvhyvfd2kdd0r90hwue',
+            'minikey': False,
+            'txin_type': 'p2wpkh',
+            'compressed': True,
+            'addr_encoding': 'bech32',
+            'scripthash': '1929acaaef3a208c715228e9f1ca0318e3a6b9394ab53c8d026137f847ecf97b'},
+           {'priv': 'p2wpkh:KyDWy5WbjLA58Zesh1o8m3pADGdJ3v33DKk4m7h8BD5zDKDmDFwo',
+            'exported_privkey': 'p2wpkh:KyDWy5WbjLA58Zesh1o8m3pADGdJ3v33DKk4m7h8BD5zDKDmDFwo',
+            'pub': '038c57657171c1f73e34d5b3971d05867d50221ad94980f7e87cbc2344425e6a1e',
+            'address': 'bc1qpakeeg4d9ydyjxd8paqrw4xy9htsg532xzxn50',
+            'minikey': False,
+            'txin_type': 'p2wpkh',
+            'compressed': True,
+            'addr_encoding': 'bech32',
+            'scripthash': '242f02adde84ebb2a7dd778b2f3a81b3826f111da4d8960d826d7a4b816cb261'},
            # from http://bitscan.com/articles/security/spotlight-on-mini-private-keys
            {'priv': 'SzavMBLoXU6kDrqtUVmffv',
             'exported_privkey': 'p2pkh:L53fCHmQhbNp1B4JipfBtfeHZH7cAibzG9oK19XfiFzxHgAkz6JK',
             'pub': '02588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9',
-            'address': 't1S9WvZLVKoLjXUAxssvGojtqx1pABJMJUU',
+            'address': '19GuvDvMMUZ8vq84wT79fvnvhMd5MnfTkR',
             'minikey': True,
             'txin_type': 'p2pkh',
             'compressed': True,  # this is actually ambiguous... issue #2748
@@ -375,6 +377,9 @@ class Test_keyImport(unittest.TestCase):
 
             is_enc_b58 = priv_details['addr_encoding'] == 'base58'
             self.assertEqual(is_enc_b58, is_b58_address(addr))
+
+            is_enc_bech32 = priv_details['addr_encoding'] == 'bech32'
+            self.assertEqual(is_enc_bech32, is_segwit_address(addr))
 
         self.assertFalse(is_address("not an address"))
 
@@ -426,7 +431,12 @@ class Test_seeds(unittest.TestCase):
         ('OSTRICH SECURITY DEER AUNT CLIMB INNER ALPHA ARM MUTUAL MARBLE SOLID TASK', 'standard'),
         ('   oStRiCh sEcUrItY DeEr aUnT ClImB       InNeR AlPhA ArM MuTuAl mArBlE   SoLiD TaSk  ', 'standard'),
         ('x8', 'standard'),
+        ('science dawn member doll dutch real can brick knife deny drive list', '2fa'),
         ('science dawn member doll dutch real ca brick knife deny drive list', ''),
+        (' sCience dawn   member doll Dutch rEAl can brick knife deny drive  lisT', '2fa'),
+        ('frost pig brisk excite novel report camera enlist axis nation novel desert', 'segwit'),
+        ('  fRoSt pig brisk excIte novel rePort CamEra enlist axis nation nOVeL dEsert ', 'segwit'),
+        ('9dk', 'segwit'),
     }
     
     def test_new_seed(self):

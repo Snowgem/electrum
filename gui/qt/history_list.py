@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2015 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -26,13 +26,13 @@
 import webbrowser
 import datetime
 
-from electrum_zcash.wallet import AddTransactionException, TX_HEIGHT_LOCAL
+from electrum.wallet import AddTransactionException, TX_HEIGHT_LOCAL
 from .util import *
-from electrum_zcash.i18n import _
-from electrum_zcash.util import block_explorer_URL, profiler
+from electrum.i18n import _
+from electrum.util import block_explorer_URL, profiler
 
 try:
-    from electrum_zcash.plot import plot_history, NothingToPlotException
+    from electrum.plot import plot_history, NothingToPlotException
 except:
     plot_history = None
 
@@ -65,7 +65,6 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         self.end_timestamp = None
         self.years = []
         self.create_toolbar_buttons()
-        self.wallet = None
 
     def format_date(self, d):
         return str(datetime.date(d.year, d.month, d.day)) if d else _('None')
@@ -236,7 +235,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             label = tx_item['label']
             status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
             has_invoice = self.wallet.invoices.paid.get(tx_hash)
-            icon = self.icon_cache.get(":icons/" + TX_ICONS[status])
+            icon = QIcon(":icons/" + TX_ICONS[status])
             v_str = self.parent.format_amount(value, True, whitespaces=True)
             balance_str = self.parent.format_amount(balance, whitespaces=True)
             entry = ['', tx_hash, status_str, label, v_str, balance_str]
@@ -254,11 +253,12 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             item.setToolTip(0, str(conf) + " confirmation" + ("s" if conf != 1 else ""))
             item.setData(0, SortableTreeWidgetItem.DataRole, (status, conf))
             if has_invoice:
-                item.setIcon(3, self.icon_cache.get(":icons/seal"))
+                item.setIcon(3, QIcon(":icons/seal"))
             for i in range(len(entry)):
                 if i>3:
                     item.setTextAlignment(i, Qt.AlignRight | Qt.AlignVCenter)
-                item.setFont(i, QFont(MONOSPACE_FONT))
+                if i!=2:
+                    item.setFont(i, QFont(MONOSPACE_FONT))
             if value and value < 0:
                 item.setForeground(3, QBrush(QColor("#BC1E1E")))
                 item.setForeground(4, QBrush(QColor("#BC1E1E")))
@@ -301,10 +301,8 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             item.setText(3, label)
 
     def update_item(self, tx_hash, height, conf, timestamp):
-        if self.wallet is None:
-            return
         status, status_str = self.wallet.get_tx_status(tx_hash, height, conf, timestamp)
-        icon = self.icon_cache.get(":icons/" +  TX_ICONS[status])
+        icon = QIcon(":icons/" +  TX_ICONS[status])
         items = self.findItems(tx_hash, Qt.UserRole|Qt.MatchContains|Qt.MatchRecursive, column=1)
         if items:
             item = items[0]
@@ -338,11 +336,18 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
             menu.addAction(_("Remove"), lambda: self.remove_local_tx(tx_hash))
         menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(column_data))
         for c in self.editable_columns:
-            menu.addAction(_("Edit {}").format(self.headerItem().text(c)),
-                           lambda bound_c=c: self.editItem(item, bound_c))
+            menu.addAction(_("Edit {}").format(self.headerItem().text(c)), lambda: self.editItem(item, c))
         menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
+        if is_unconfirmed and tx:
+            rbf = is_mine and not tx.is_final()
+            if rbf:
+                menu.addAction(_("Increase fee"), lambda: self.parent.bump_fee_dialog(tx))
+            else:
+                child_tx = self.wallet.cpfp(tx, 0)
+                if child_tx:
+                    menu.addAction(_("Child pays for parent"), lambda: self.parent.cpfp(tx, child_tx))
         if pr_key:
-            menu.addAction(self.icon_cache.get(":icons/seal"), _("View invoice"), lambda: self.parent.show_invoice(pr_key))
+            menu.addAction(QIcon(":icons/seal"), _("View invoice"), lambda: self.parent.show_invoice(pr_key))
         if tx_URL:
             menu.addAction(_("View on block explorer"), lambda: webbrowser.open(tx_URL))
         menu.exec_(self.viewport().mapToGlobal(position))
@@ -393,7 +398,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
         try:
             self.do_export_history(self.wallet, filename, csv_button.isChecked())
         except (IOError, os.error) as reason:
-            export_error_label = _("Electrum was unable to produce a transaction export.")
+            export_error_label = _("SnowGem Electrum was unable to produce a transaction export.")
             self.parent.show_critical(export_error_label + "\n" + str(reason), title=_("Unable to export history"))
             return
         self.parent.show_message(_("Your wallet history has been successfully exported."))
@@ -406,7 +411,7 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
                 lines.append([item['txid'], item.get('label', ''), item['confirmations'], item['value'], item['date']])
             else:
                 lines.append(item)
-        with open(fileName, "w+", encoding='utf-8') as f:
+        with open(fileName, "w+") as f:
             if is_csv:
                 import csv
                 transaction = csv.writer(f, lineterminator='\n')
@@ -414,5 +419,5 @@ class HistoryList(MyTreeWidget, AcceptFileDragDrop):
                 for line in lines:
                     transaction.writerow(line)
             else:
-                from electrum_zcash.util import json_encode
+                from electrum.util import json_encode
                 f.write(json_encode(history))

@@ -8,10 +8,8 @@ for i, x in enumerate(sys.argv):
         cmdline_name = sys.argv[i+1]
         break
 else:
-    raise Exception('no name')
+    raise BaseException('no name')
 
-PYTHON_VERSION = '3.5.4'
-PYHOME = 'c:/python' + PYTHON_VERSION
 
 home = 'C:\\electrum\\'
 
@@ -23,7 +21,7 @@ hiddenimports += collect_submodules('keepkeylib')
 hiddenimports += collect_submodules('websocket')
 
 # Add libusb binary
-binaries = [(PYHOME+"/libusb-1.0.dll", ".")]
+binaries = [("c:/python3.5.4/libusb-1.0.dll", ".")]
 
 # Workaround for "Retro Look":
 binaries += [b for b in collect_dynamic_libs('PyQt5') if 'qwindowsvista' in b[0]]
@@ -31,8 +29,9 @@ binaries += [b for b in collect_dynamic_libs('PyQt5') if 'qwindowsvista' in b[0]
 datas = [
     (home+'lib/currencies.json', 'electrum'),
     (home+'lib/servers.json', 'electrum'),
+    (home+'lib/checkpoints.json', 'electrum'),
     (home+'lib/servers_testnet.json', 'electrum'),
-    (home+'lib/servers_regtest.json', 'electrum'),
+    (home+'lib/checkpoints_testnet.json', 'electrum'),
     (home+'lib/wordlist/english.txt', 'electrum/wordlist'),
     (home+'lib/locale', 'electrum/locale'),
     (home+'plugins', 'electrum_plugins'),
@@ -52,6 +51,8 @@ a = Analysis([home+'electrum',
               home+'lib/bitcoin.py',
               home+'lib/dnssec.py',
               home+'lib/commands.py',
+              home+'plugins/cosigner_pool/qt.py',
+              home+'plugins/email_requests/qt.py',
               home+'plugins/trezor/client.py',
               home+'plugins/trezor/qt.py',
               home+'plugins/keepkey/qt.py',

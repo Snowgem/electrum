@@ -1,4 +1,4 @@
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight SnowGem client
 # Copyright (C) 2011 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -106,7 +106,7 @@ class Satoshis(object):
         return 'Satoshis(%d)'%self.value
 
     def __str__(self):
-        return format_satoshis(self.value) + " BTC"
+        return format_satoshis(self.value) + " XSG"
 
 class Fiat(object):
     def __new__(cls, value, ccy):
@@ -294,14 +294,6 @@ def profiler(func):
     return lambda *args, **kw_args: do_profile(func, args, kw_args)
 
 
-def android_headers_file_name():
-    from bitcoin import TESTNET
-    s = 'blockchain_headers'
-    if TESTNET:
-        s += '_testnet'
-    return s
-
-
 def android_ext_dir():
     import jnius
     env = jnius.autoclass('android.os.Environment')
@@ -313,7 +305,7 @@ def android_data_dir():
     return PythonActivity.mActivity.getFilesDir().getPath() + '/data'
 
 def android_headers_dir():
-    d = android_ext_dir() + '/cash.z.electrum.electrum_zcash'
+    d = android_ext_dir() + '/org.electrum_xsg.electrum'
     if not os.path.exists(d):
         os.mkdir(d)
     return d
@@ -426,7 +418,7 @@ def format_satoshis(x, is_diff=False, num_zeros = 0, decimal_point = 8, whitespa
         return 'unknown'
     x = int(x)  # Some callers pass Decimal
     scale_factor = pow (10, decimal_point)
-    integer_part = "{:d}".format(int(abs(x) / scale_factor))
+    integer_part = "{:n}".format(int(abs(x) / scale_factor))
     if x < 0:
         integer_part = '-' + integer_part
     elif is_diff:
@@ -506,17 +498,17 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'snowgem.org': ('https://explorer.snowgem.org/blocks/',
-                        {'tx': 'transactions/', 'addr': 'addresses/'}),
-    'system default': ('blockchain:/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
+    'insight.snowgem.org': ('https://insight.snowgem.org',
+                        {'tx': 'tx', 'addr': 'address'}),
+    'system default': ('blockchain:',
+                        {'tx': 'tx', 'addr': 'address'})
+
 }
 
+
 testnet_block_explorers = {
-    'test.explorer': ('https://test.explorer.snowgem.org/',
-                       {'tx': 'tx/', 'addr': 'address/'}),
-    'system default': ('blockchain:/',
-                       {'tx': 'tx/', 'addr': 'address/'}),
+    'system default': ('blockchain:',
+                       {'tx': 'tx', 'addr': 'address'})
 }
 
 def block_explorer_info():
@@ -524,7 +516,7 @@ def block_explorer_info():
     return testnet_block_explorers if constants.net.TESTNET else mainnet_block_explorers
 
 def block_explorer(config):
-    return config.get('block_explorer', 'explorer.snowgem.org')
+    return config.get('block_explorer', 'insight.snowgem.org')
 
 def block_explorer_tuple(config):
     return block_explorer_info().get(block_explorer(config))
@@ -549,12 +541,12 @@ def parse_URI(uri, on_pr=None):
 
     if ':' not in uri:
         if not bitcoin.is_address(uri):
-            raise Exception("Not a SnowGem address")
+            raise BaseException("Not a bitcoin address")
         return {'address': uri}
 
     u = urllib.parse.urlparse(uri)
-    if u.scheme != 'snowgem':
-        raise Exception("Not a SnowGem URI")
+    if u.scheme != 'bitcoin':
+        raise BaseException("Not a bitcoin URI")
     address = u.path
 
     # python for android fails to parse query
@@ -571,7 +563,7 @@ def parse_URI(uri, on_pr=None):
     out = {k: v[0] for k, v in pq.items()}
     if address:
         if not bitcoin.is_address(address):
-            raise Exception("Invalid SnowGem address:" + address)
+            raise BaseException("Invalid bitcoin address:" + address)
         out['address'] = address
     if 'amount' in out:
         am = out['amount']
@@ -621,7 +613,7 @@ def create_URI(addr, amount, message):
         query.append('amount=%s'%format_satoshis_plain(amount))
     if message:
         query.append('message=%s'%urllib.parse.quote(message))
-    p = urllib.parse.ParseResult(scheme='snowgem', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib.parse.ParseResult(scheme='bitcoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urllib.parse.urlunparse(p)
 
 
@@ -718,6 +710,10 @@ class SocketPipe:
                 out = out[sent:]
             except ssl.SSLError as e:
                 print_error("SSLError:", e)
+                time.sleep(0.1)
+                continue
+            except OSError as e:
+                print_error("OSError", e)
                 time.sleep(0.1)
                 continue
 

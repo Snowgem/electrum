@@ -14,5 +14,4 @@ recursive-include packages cacert.pem
 include icons.qrc
 recursive-include icons *
 recursive-include scripts *
-recursive-include debian *
 

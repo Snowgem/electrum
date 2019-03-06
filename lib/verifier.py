@@ -1,4 +1,4 @@
-# Electrum - Lightweight Bitcoin Client
+# Electrum - Lightweight SnowGem Client
 # Copyright (c) 2012 Thomas Voegtlin
 #
 # Permission is hereby granted, free of charge, to any person
@@ -23,7 +23,7 @@
 from .util import ThreadJob
 from .bitcoin import *
 from .blockchain import CHUNK_LEN
-
+from . import constants
 
 class SPV(ThreadJob):
     """ Simple Payment Verification """
@@ -51,8 +51,7 @@ class SPV(ThreadJob):
                 header = blockchain.read_header(tx_height)
                 if header is None:
                     index = tx_height // CHUNK_LEN
-                    if index < len(blockchain.checkpoints):
-                        self.network.request_chunk(interface, index)
+                    self.network.request_chunk(self.network.interface, index)
                 else:
                     if tx_hash not in self.merkle_roots:
                         request = ('blockchain.transaction.get_merkle',
