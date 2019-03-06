@@ -646,7 +646,7 @@ issue #3374. Users should upgrade to 3.0.5.
  * Fix transaction sweep (#1066)
  * Fix thread timing bug (#1054)
 
-# Release 2.0.1 - bugfixes
+# Release 3.0.0 - bugfixes
  * Fix critical bug in TREZOR address derivation: passphrases were not
    NFKD normalized. TREZOR users who created a wallet protected by a
    passphrase containing utf-8 characters with diacritics are

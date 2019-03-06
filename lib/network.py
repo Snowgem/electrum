@@ -291,6 +291,9 @@ class Network(util.DaemonThread):
     def is_downloading(self):
         return self.connection_status == 'downloading'
 
+    def is_syncing(self):
+        return self.connection_status == 'syncing'
+
     def is_up_to_date(self):
         return self.unanswered_requests == {}
 
@@ -806,8 +809,12 @@ class Network(util.DaemonThread):
             return
         # If not finished, get the next chunk
         if index >= len(blockchain.checkpoints) and blockchain.height() < interface.tip:
+            if not self.is_syncing():
+                self.set_status('syncing')
             self.request_chunk(interface, index+1)
         else:
+            if(self.is_syncing()):
+                self.set_status('connected')
             interface.mode = 'default'
             interface.print_error('catch up done', blockchain.height())
             blockchain.catch_up = None
@@ -986,22 +993,38 @@ class Network(util.DaemonThread):
     def init_headers_file(self):
         b = self.blockchains[0]
         filename = b.path()
-        # len_checkpoints = len(constants.net.CHECKPOINTS)
-        len_checkpoints = 0
-        # length = get_header_size(height) * len_checkpoints * CHUNK_LEN
-        # if not os.path.exists(filename) or os.path.getsize(filename) < length:
-        if not os.path.exists(filename):
-            with open(filename, 'wb') as f:
-                for i in range(len_checkpoints):
-                    for height, header_data in b.checkpoints[i][2]:
-                        f.seek(height*get_header_size(height))
-                        bin_header = bfh(header_data)
-                        f.write(bin_header)
-        with b.lock:
-            b.update_size(0)
+        if os.path.exists(filename):
+            self.set_status("syncing")
+            with b.lock:
+                b.update_size(0)
+            return
+        def download_thread():
+            try:
+                import urllib, socket
+                socket.setdefaulttimeout(30)
+                self.print_error("downloading ", constants.net.HEADERS_URL)
+                urllib.request.urlretrieve(constants.net.HEADERS_URL, filename)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                self.print_error("download failed. creating file", filename)
+                open(filename, 'wb+').close()
+
+            b = self.blockchains[0]
+            with b.lock:
+                b.update_size(0)
+            self.set_status("syncing")
+
+        self.set_status("downloading")
+        t = threading.Thread(target = download_thread)
+        t.daemon = True
+        t.start()
 
     def run(self):
         self.init_headers_file()
+        while self.is_running() and self.is_downloading():
+            time.sleep(1)
+        self.print_error("download failed. creating file")
         while self.is_running():
             self.maintain_sockets()
             self.wait_on_sockets()

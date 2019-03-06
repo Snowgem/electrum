@@ -720,29 +720,36 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 text = _("Server is lagging ({} blocks)").format(server_lag)
                 icon = QIcon(":icons/status_lagging.png")
             else:
-                c, u, x = self.wallet.get_balance()
-                text =  _("Balance" ) + ": %s "%(self.format_amount_and_units(c))
-                if u:
-                    text +=  " [%s unconfirmed]"%(self.format_amount(u, True).strip())
-                if x:
-                    text +=  " [%s unmatured]"%(self.format_amount(x, True).strip())
-
-                # append fiat balance and price
-                if self.fx.is_enabled():
-                    text += self.fx.get_fiat_status_text(c + u + x,
-                        self.base_unit(), self.get_decimal_point()) or ''
-                if not self.network.proxy:
-                    icon = QIcon(":icons/status_connected.png")
+                if self.network.is_syncing():
+                    text = _("Syncing...")
+                    icon = QIcon(":icons/status_waiting.png")
                 else:
-                    icon = QIcon(":icons/status_connected_proxy.png")
+                    c, u, x = self.wallet.get_balance()
+                    text =  _("Balance" ) + ": %s "%(self.format_amount_and_units(c))
+                    if u:
+                        text +=  " [%s unconfirmed]"%(self.format_amount(u, True).strip())
+                    if x:
+                        text +=  " [%s unmatured]"%(self.format_amount(x, True).strip())
+
+                    # append fiat balance and price
+                    if self.fx.is_enabled():
+                        text += self.fx.get_fiat_status_text(c + u + x,
+                            self.base_unit(), self.get_decimal_point()) or ''
+
+                    if not self.network.proxy:
+                        icon = QIcon(":icons/status_connected.png")
+                    else:
+                        icon = QIcon(":icons/status_connected_proxy.png")
         else:
             if(self.network.is_downloading()):
-                text = _("Downloading data, please wait some minutes...")    
+                text = _("Downloading data, please wait few minutes...")
+                icon = QIcon(":icons/status_waiting.png")
             else:
                 text = _("Not connected")
-            icon = QIcon(":icons/status_disconnected.png")
-
-        self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename()))
+                icon = QIcon(":icons/status_disconnected.png")
+        
+        if not self.network.is_syncing() and not self.network.is_downloading():
+            self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename()))
         self.balance_label.setText(text)
         self.status_button.setIcon( icon )
 
