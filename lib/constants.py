@@ -49,7 +49,7 @@ class BitcoinMainnet:
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = read_json('servers.json', {})
     CHECKPOINTS = read_json('checkpoints.json', [])
-    HEADERS_URL = "http://electrum.snowgem.org/blockchain_headers"
+    HEADERS_URL = "https://github.com/Snowgem/electrum/releases/download/data/blockchain_headers"
     EQUIHASH_N = 200
     EQUIHASH_K = 9
     EQUIHASH_N_NEW = 144
