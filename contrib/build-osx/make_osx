@@ -18,7 +18,7 @@ export PYTHONHASHSEED=22
 VERSION=`git describe --tags`
 
 # Paramterize
-PYTHON_VERSION=3.6.4
+PYTHON_VERSION=3.5.2
 BUILDDIR=/tmp/electrum-build
 PACKAGE='SnowGem Electrum'
 GIT_REPO=https://github.com/Snowgem/electrum
