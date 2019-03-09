@@ -1039,11 +1039,11 @@ class Network(util.DaemonThread):
         hex_header = header.get('hex')
         if not height or not hex_header:
             return
-        # @TODO txid
-        # if len(hex_header) != get_header_size(height)*2:
-        #     interface.print_error('wrong header length', interface.request)
-        #     self.connection_down(interface.server)
-        #     return
+
+        if len(hex_header) != get_header_size(height)*2:
+            interface.print_error('wrong header length', interface.request)
+            self.connection_down(interface.server)
+            return
 
         header = blockchain.deserialize_header(bfh(hex_header), height)
         if height < self.max_checkpoint():

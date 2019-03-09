@@ -38,7 +38,7 @@ POW_MEDIAN_BLOCK_SPAN = 11
 POW_MAX_ADJUST_DOWN = 32
 POW_MAX_ADJUST_UP = 16
 POW_DAMPING_FACTOR = 4
-POW_TARGET_SPACING = 150
+POW_TARGET_SPACING = 60
 EH_EPOCH_1_END = 266000
 
 USE_COMPRESSSION = False
@@ -197,12 +197,10 @@ class Blockchain(util.PrintError):
         if constants.net.TESTNET:
             return
         bits = self.target_to_bits(target)
-
-        # @TODO txid
-        # if bits != header.get('bits'):
-        #     raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        # if int('0x' + _hash, 16) > target:
-        #     raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
+        if bits != header.get('bits'):
+            raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        if int('0x' + _hash, 16) > target:
+            raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
 
     def calculate_size(self, checkpoint, size_in_bytes):
         # Post-fork
