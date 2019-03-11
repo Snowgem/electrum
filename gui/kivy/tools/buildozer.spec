@@ -31,7 +31,7 @@ source.exclude_patterns = Makefile,setup*
 version = 3.0.0
 
 # (list) Application requirements
-requirements = python3crystax==3.6, android, openssl, plyer, kivy==master
+requirements = python3, android, openssl, plyer, kivy==b47f669f44dbda4f463bcb7d2cada639f7fed3bc, libffi, libsecp256k1
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/gui/kivy/theming/splash.png
@@ -70,10 +70,10 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, C
 android.private_storage = True
 
 # (str) Android NDK directory (if empty, it will be automatically downloaded.)
-android.ndk_path = /opt/crystax-ndk-10.3.2
+android.ndk_path = /opt/android/android-ndk
 
 # (str) Android SDK directory (if empty, it will be automatically downloaded.)
-#android.sdk_path =
+android.sdk_path = /opt/android/android-sdk
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.renpy.android.PythonActivity
