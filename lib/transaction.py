@@ -39,7 +39,6 @@ import sys
 # Workalike python implementation of SnowGem's CDataStream class.
 #
 from .keystore import xpubkey_to_address, xpubkey_to_pubkey
-from pyblake2 import blake2b
 
 NO_SIGNATURE = 'ff'
 OVERWINTERED_VERSION_GROUP_ID = 0x03C48270
