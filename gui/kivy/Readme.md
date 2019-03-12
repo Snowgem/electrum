@@ -36,7 +36,15 @@ folder.
     $ ./contrib/make_packages
     ```
 
-5. Build binaries
+5. Make tmeming
+    ```
+    $ sudo apt-get install build-essential libgl1-mesa-dev cython autoconf automake libtool
+    $ python3 -m pip install kivy image
+    $ cd gui/kivy
+    $ make theming
+    ```
+
+6. Build binaries
 
     ```
     $ sudo docker run -it --rm \
@@ -51,7 +59,7 @@ folder.
     and so the modifications will affect it, e.g. `.buildozer` folder
     will be created.
 
-5. The generated binary is in `./bin`.
+7. The generated binary is in `./bin`.
 
 
 
@@ -83,8 +91,4 @@ See `log_level` in `buildozer.spec`
 
 
 ### Kivy can be run directly on Linux Desktop. How?
-Install Kivy.
-
-Build atlas: `(cd electrum/gui/kivy/; make theming)`
-
 Run electrum with the `-g` switch: `electrum -g kivy`
