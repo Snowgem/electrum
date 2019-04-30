@@ -33,6 +33,7 @@ from .bitcoin import *
 CHUNK_LEN = 500
 
 MAX_TARGET = 0x0007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+MIN_TARGET = 0x0007ffff00000000000000000000000000000000000000000000000000000000
 POW_AVERAGING_WINDOW = 17
 POW_MEDIAN_BLOCK_SPAN = 11
 POW_MAX_ADJUST_DOWN = 32
@@ -408,8 +409,8 @@ class Blockchain(util.PrintError):
             max_height = chunk_headers['max_height']
         if height <= POW_AVERAGING_WINDOW:
             return MAX_TARGET
-        if (height >= EH_EPOCH_1_END - POW_AVERAGING_WINDOW and height < EH_EPOCH_1_END):
-            return MAX_TARGET
+        if (height > EH_EPOCH_1_END - POW_AVERAGING_WINDOW and height <= EH_EPOCH_1_END):
+            return MIN_TARGET
         height_range = range(max(0, height - POW_AVERAGING_WINDOW),
                              max(1, height))
         mean_target = 0
