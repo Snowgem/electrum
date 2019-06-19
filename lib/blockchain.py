@@ -41,6 +41,8 @@ POW_MAX_ADJUST_UP = 16
 POW_DAMPING_FACTOR = 4
 POW_TARGET_SPACING = 60
 EH_EPOCH_1_END = 266000
+LWMA_FORK_BLOCK = 765000
+ZAWY_LWMA3_AVERAGING_WINDOW = 60
 
 USE_COMPRESSSION = False
 COMPRESSION_LEVEL = 1
@@ -398,7 +400,7 @@ class Blockchain(util.PrintError):
             median.append(header.get('timestamp'))
 
         median.sort()
-        return median[len(median)//2];
+        return median[len(median)//2]
 
     def get_target(self, height, chunk_headers=None):
         if chunk_headers is None or chunk_headers['empty']:
@@ -411,34 +413,90 @@ class Blockchain(util.PrintError):
             return MAX_TARGET
         if (height > EH_EPOCH_1_END - POW_AVERAGING_WINDOW and height <= EH_EPOCH_1_END):
             return MIN_TARGET
-        height_range = range(max(0, height - POW_AVERAGING_WINDOW),
-                             max(1, height))
-        mean_target = 0
-        for h in height_range:
-            header = self.read_header(h)
-            if not header and not chunk_empty \
-                and min_height <= h <= max_height:
-                    header = chunk_headers[h]
-            if not header:
-                raise Exception("Can not read header at height %s" % h)
-            mean_target += self.bits_to_target(header.get('bits'))
-        mean_target //= POW_AVERAGING_WINDOW
-        actual_timespan = self.get_median_time(height, chunk_headers) - \
-            self.get_median_time(height - POW_AVERAGING_WINDOW, chunk_headers)
-        actual_timespan = AVERAGING_WINDOW_TIMESPAN + \
-            int((actual_timespan - AVERAGING_WINDOW_TIMESPAN) / \
-                POW_DAMPING_FACTOR)
-        if actual_timespan < MIN_ACTUAL_TIMESPAN:
-            actual_timespan = MIN_ACTUAL_TIMESPAN
-        elif actual_timespan > MAX_ACTUAL_TIMESPAN:
-            actual_timespan = MAX_ACTUAL_TIMESPAN
+        
+        # LWMA fork
+        if(height >= LWMA_FORK_BLOCK):
+            T = POW_TARGET_SPACING
+            N = ZAWY_LWMA3_AVERAGING_WINDOW
+            k = int(N * (N + 1) * T / 2)
 
-        next_target = mean_target // AVERAGING_WINDOW_TIMESPAN * actual_timespan
+            previousTimestamp = 0
+            t = 0
+            j = 0
+            sumTarget = 0
 
-        if next_target > MAX_TARGET:
-            next_target = MAX_TARGET
+            if (height < N):
+                return MAX_TARGET
 
-        return next_target
+            if(not chunk_empty and min_height <= height - N - 1 <= max_height):
+                previousTimestamp = chunk_headers[height - N - 1].get('timestamp')
+            else:
+                previousTimestamp = self.read_header(height - N - 1).get('timestamp')
+            
+
+            for h in range(height - N, height):
+                # self.print_error('height ', height)
+                header = self.read_header(h)
+                if not header and not chunk_empty \
+                    and min_height <= h <= max_height:
+                        header = chunk_headers[h]
+                if not header:
+                    raise Exception("Can not read header at height %s" % h)
+                    
+                if header.get('timestamp') > previousTimestamp:
+                    thisTimestamp = header.get('timestamp')
+                else:
+                    thisTimestamp = previousTimestamp + 1
+                solvetime = min(6 * T, thisTimestamp - previousTimestamp)
+                previousTimestamp = thisTimestamp
+                j += 1
+                t += solvetime * j # Weighted solvetime sum.
+                sumTarget += self.bits_to_target(header.get('bits'))
+
+                if(h == height - 1):
+                    previousDiff = self.bits_to_target(header.get('bits'))
+
+            nextTarget = t * sumTarget  // (k * N)
+
+            if (nextTarget > (previousDiff * 150) / 100):
+                nextTarget = (previousDiff * 150) / 100
+            if ((previousDiff * 67) / 100 > nextTarget):
+                nextTarget = (previousDiff * 67)/100
+            if (nextTarget > MAX_TARGET):
+                nextTarget = MAX_TARGET
+            
+            return nextTarget
+
+        # Digishield
+        else:
+            height_range = range(max(0, height - POW_AVERAGING_WINDOW),
+                                max(1, height))
+            mean_target = 0
+            for h in height_range:
+                header = self.read_header(h)
+                if not header and not chunk_empty \
+                    and min_height <= h <= max_height:
+                        header = chunk_headers[h]
+                if not header:
+                    raise Exception("Can not read header at height %s" % h)
+                mean_target += self.bits_to_target(header.get('bits'))
+            mean_target //= POW_AVERAGING_WINDOW
+            actual_timespan = self.get_median_time(height, chunk_headers) - \
+                self.get_median_time(height - POW_AVERAGING_WINDOW, chunk_headers)
+            actual_timespan = AVERAGING_WINDOW_TIMESPAN + \
+                int((actual_timespan - AVERAGING_WINDOW_TIMESPAN) / \
+                    POW_DAMPING_FACTOR)
+            if actual_timespan < MIN_ACTUAL_TIMESPAN:
+                actual_timespan = MIN_ACTUAL_TIMESPAN
+            elif actual_timespan > MAX_ACTUAL_TIMESPAN:
+                actual_timespan = MAX_ACTUAL_TIMESPAN
+
+            next_target = mean_target // AVERAGING_WINDOW_TIMESPAN * actual_timespan
+
+            if next_target > MAX_TARGET:
+                next_target = MAX_TARGET
+
+            return next_target
 
     def bits_to_target(self, bits):
         bitsN = (bits >> 24) & 0xff
