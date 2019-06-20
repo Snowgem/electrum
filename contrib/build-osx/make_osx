@@ -18,7 +18,7 @@ export PYTHONHASHSEED=22
 VERSION=`git describe --tags`
 
 # Paramterize
-PYTHON_VERSION=3.5.2
+PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electrum-build
 PACKAGE='SnowGem Electrum'
 GIT_REPO=https://github.com/Snowgem/electrum
@@ -36,7 +36,7 @@ fail "Unable to use Python $PYTHON_VERSION"
 
 
 info "Installing pyinstaller"
-python3 -m pip install -I --user pyinstaller==3.4 --no-use-pep517 || fail "Could not install pyinstaller"
+python3 -m pip install -I --user pyinstaller==3.4 || fail "Could not install pyinstaller"
 
 info "Using these versions for building $PACKAGE:"
 sw_vers
