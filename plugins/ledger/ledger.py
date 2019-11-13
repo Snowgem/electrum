@@ -328,6 +328,9 @@ class Ledger_KeyStore(Hardware_KeyStore):
         pin = ""
         self.get_client() # prompt for the PIN before displaying the dialog if necessary
 
+        if tx.overwintered:
+            if not self.get_client_electrum().supports_overwinter():
+                self.give_error(MSG_NEEDS_FW_UPDATE_OVERWINTER)
         # Fetch inputs of the transaction to sign
         derivations = self.get_tx_derivations(tx)
         for txin in tx.inputs():
@@ -433,8 +436,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
 
                 if tx.overwintered:
                     inputSignature = self.get_client().untrustedHashSign('',
-                                                                         '', lockTime=tx.locktime,
-                                                                         version=tx.version,
+                                                                         pin, lockTime=tx.locktime,
                                                                          overwintered=tx.overwintered)
                 outputData['outputData'] = txOutput
                 transactionOutput = outputData['outputData']
@@ -454,7 +456,6 @@ class Ledger_KeyStore(Hardware_KeyStore):
                                                                 overwintered=tx.overwintered)
                     inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex],
                                                                          pin, lockTime=tx.locktime,
-                                                                         version=tx.version,
                                                                          overwintered=tx.overwintered)
                     inputSignature[0] = 0x30 # force for 1.4.9+
                     signatures.append(inputSignature)
@@ -483,9 +484,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
                     else:
                         # Sign input with the provided PIN
                         inputSignature = self.get_client().untrustedHashSign(inputsPaths[inputIndex],
-                                                                             pin, lockTime=tx.locktime,
-                                                                             version=tx.version,
-                                                                             overwintered=tx.overwintered)
+                                                                             pin, lockTime=tx.locktime)
                         inputSignature[0] = 0x30 # force for 1.4.9+
                         signatures.append(inputSignature)
                         inputIndex = inputIndex + 1
