@@ -471,8 +471,8 @@ class TrustedCoinPlugin(BasePlugin):
         if type(wallet) != Wallet_2fa:
             return
         for o in tx.outputs():
-            if wallet.is_billing_address(o.address):
-                return o.address, o.value
+            if wallet.is_billing_address(o[1]):
+                return o[1], o[2]
 
     def finish_requesting(func):
         def f(self, *args, **kwargs):

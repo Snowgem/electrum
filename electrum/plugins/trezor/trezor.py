@@ -2,6 +2,7 @@ import traceback
 import sys
 from typing import NamedTuple, Any, Optional, Dict, Union, List, Tuple, TYPE_CHECKING
 
+from . import bitcoin
 from electrum.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
 from electrum.bip32 import BIP32Node, convert_bip32_path_to_list_of_uint32 as parse_path
 from electrum import constants
@@ -472,7 +473,7 @@ class TrezorPlugin(HW_PluginBase):
         t.lock_time = tx.locktime
         t.inputs = self.tx_inputs(tx)
         t.bin_outputs = [
-            TxOutputBinType(amount=o.value, script_pubkey=o.scriptpubkey)
+            TxOutputBinType(amount=o[2], script_pubkey=bitcoin.address_to_script(o[1]))
             for o in tx.outputs()
         ]
         return t

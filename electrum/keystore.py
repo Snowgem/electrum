@@ -32,7 +32,7 @@ from functools import lru_cache
 from abc import ABC, abstractmethod
 
 from . import bitcoin, ecc, constants, bip32
-from .bitcoin import deserialize_privkey, serialize_privkey
+from .bitcoin import deserialize_privkey, serialize_privkey, public_key_to_p2pkh
 from .bip32 import (convert_bip32_path_to_list_of_uint32, BIP32_PRIME,
                     is_xpub, is_xprv, BIP32Node, normalize_bip32_derivation,
                     convert_bip32_intpath_to_strpath)
@@ -471,6 +471,32 @@ class Xpub(MasterPublicKeyMixin):
         node = BIP32Node.from_xkey(xpub).subkey_at_public_derivation(sequence)
         return node.eckey.get_public_key_bytes(compressed=True)
 
+    def get_xpubkey(self, c, i):
+        s = ''.join(map(lambda x: bitcoin.int_to_hex(x,2), (c, i)))
+        return 'ff' + bh2u(bitcoin.DecodeBase58Check(self.xpub)) + s
+
+    @classmethod
+    def parse_xpubkey(self, pubkey):
+        assert pubkey[0:2] == 'ff'
+        pk = bfh(pubkey)
+        pk = pk[1:]
+        xkey = bitcoin.EncodeBase58Check(pk[0:78])
+        dd = pk[78:]
+        s = []
+        while dd:
+            n = int(bitcoin.rev_hex(bh2u(dd[0:2])), 16)
+            dd = dd[2:]
+            s.append(n)
+        assert len(s) == 2
+        return xkey, s
+
+    def get_pubkey_derivation(self, x_pubkey):
+        if x_pubkey[0:2] != 'ff':
+            return
+        xpub, derivation = self.parse_xpubkey(x_pubkey)
+        if self.xpub != xpub:
+            return
+        return derivation
 
 class BIP32_KeyStore(Xpub, Deterministic_KeyStore):
 
@@ -680,6 +706,28 @@ class Old_KeyStore(MasterPublicKeyMixin, Deterministic_KeyStore):
             self.seed = pw_encode(decoded, new_password, version=PW_HASH_VERSION_LATEST)
         self.pw_hash_version = PW_HASH_VERSION_LATEST
 
+    @classmethod
+    def parse_xpubkey(self, x_pubkey):
+        assert x_pubkey[0:2] == 'fe'
+        pk = x_pubkey[2:]
+        mpk = pk[0:128]
+        dd = pk[128:]
+        s = []
+        while dd:
+            n = int(bitcoin.rev_hex(dd[0:4]), 16)
+            dd = dd[4:]
+            s.append(n)
+        assert len(s) == 2
+        return mpk, s
+
+    def get_pubkey_derivation(self, x_pubkey):
+        if x_pubkey[0:2] != 'fe':
+            return
+        mpk, derivation = self.parse_xpubkey(x_pubkey)
+        if self.mpk != mpk:
+            return
+        return derivation
+
 
 class Hardware_KeyStore(Xpub, KeyStore):
     hw_type: str
@@ -850,6 +898,38 @@ def xtype_from_derivation(derivation: str) -> str:
                 return script_type
     return 'standard'
 
+# extended pubkeys
+def is_xpubkey(x_pubkey):
+    return x_pubkey[0:2] == 'ff'
+
+
+def parse_xpubkey(x_pubkey):
+    assert x_pubkey[0:2] == 'ff'
+    return BIP32_KeyStore.parse_xpubkey(x_pubkey)
+
+
+def xpubkey_to_address(x_pubkey):
+    if x_pubkey[0:2] == 'fd':
+        address = bitcoin.script_to_address(x_pubkey[2:])
+        return x_pubkey, address
+    if x_pubkey[0:2] in ['02', '03', '04']:
+        pubkey = x_pubkey
+    elif x_pubkey[0:2] == 'ff':
+        xpub, s = BIP32_KeyStore.parse_xpubkey(x_pubkey)
+        pubkey = BIP32_KeyStore.get_pubkey_from_xpub(xpub, s)
+    elif x_pubkey[0:2] == 'fe':
+        mpk, s = Old_KeyStore.parse_xpubkey(x_pubkey)
+        pubkey = Old_KeyStore.get_pubkey_from_mpk(mpk, s[0], s[1])
+    else:
+        raise BitcoinException("Cannot parse pubkey. prefix: {}"
+                               .format(x_pubkey[0:2]))
+    if pubkey:
+        address = public_key_to_p2pkh(bfh(pubkey))
+    return pubkey, address
+
+def xpubkey_to_pubkey(x_pubkey):
+    pubkey, address = xpubkey_to_address(x_pubkey)
+    return pubkey
 
 hw_keystores = {}
 

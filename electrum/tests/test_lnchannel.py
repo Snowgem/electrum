@@ -179,7 +179,7 @@ class TestChannel(ElectrumTestCase):
 
     def assertOutputExistsByValue(self, tx, amt_sat):
         for o in tx.outputs():
-            if o.value == amt_sat:
+            if o[2] == amt_sat:
                 break
         else:
             self.assertFalse()

@@ -4,6 +4,7 @@ import sys
 import traceback
 from typing import Optional
 
+from . import bitcoin
 from electrum import ecc
 from electrum import bip32
 from electrum.crypto import hash_160
@@ -373,8 +374,8 @@ class Ledger_KeyStore(Hardware_KeyStore):
 
         txOutput = var_int(len(tx.outputs()))
         for o in tx.outputs():
-            txOutput += int_to_hex(o.value, 8)
-            script = o.scriptpubkey.hex()
+            txOutput += int_to_hex(o[2], 8)
+            script = bfh(bitcoin.address_to_script(o[1])).hex()
             txOutput += var_int(len(script)//2)
             txOutput += script
         txOutput = bfh(txOutput)

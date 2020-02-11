@@ -280,7 +280,7 @@ class Blockchain(Logger):
             return header_hash == self.get_hash(height)
         except Exception:
             return False
-
+    
     def fork(parent, header: dict) -> 'Blockchain':
         if not parent.can_connect(header, check_height=False):
             raise Exception("forking header does not connect to parent chain")

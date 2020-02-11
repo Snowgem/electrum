@@ -1380,10 +1380,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             return True
 
         for o in outputs:
-            if o.scriptpubkey is None:
+            if bitcoin.address_to_script(o[1]) is None:
                 self.show_error(_('Bitcoin Address is None'))
                 return True
-            if o.value is None:
+            if o[2] is None:
                 self.show_error(_('Invalid Amount'))
                 return True
 

@@ -655,7 +655,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     def _get_relevant_invoice_keys_for_tx(self, tx: Transaction) -> Set[str]:
         relevant_invoice_keys = set()
         for txout in tx.outputs():
-            for invoice_key in self._invoices_from_scriptpubkey_map.get(txout.scriptpubkey, set()):
+            for invoice_key in self._invoices_from_scriptpubkey_map.get(bitcoin.address_to_script(txout[1]), set()):
                 relevant_invoice_keys.add(invoice_key)
         return relevant_invoice_keys
 
@@ -673,7 +673,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         assert invoice.get('type') == PR_TYPE_ONCHAIN
         invoice_amounts = defaultdict(int)  # type: Dict[bytes, int]  # scriptpubkey -> value_sats
         for txo in invoice['outputs']:  # type: PartialTxOutput
-            invoice_amounts[txo.scriptpubkey] += 1 if txo.value == '!' else txo.value
+            invoice_amounts[bitcoin.address_to_script(txo[1])] += 1 if txo[2] == '!' else txo[2]
         relevant_txs = []
         with self.transaction_lock:
             for invoice_scriptpubkey, invoice_amt in invoice_amounts.items():
@@ -782,7 +782,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             item['fee'] = Satoshis(tx_fee) if tx_fee is not None else None
             if show_addresses:
                 item['inputs'] = list(map(lambda x: x.to_json(), tx.inputs()))
-                item['outputs'] = list(map(lambda x: {'address': x.get_ui_address_str(), 'value': Satoshis(x.value)},
+                item['outputs'] = list(map(lambda x: {'address': x[1], 'value': Satoshis(x[2])},
                                            tx.outputs()))
             # fixme: use in and out values
             value = item['bc_value'].value
@@ -996,7 +996,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         # check outputs
         i_max = None
         for i, o in enumerate(outputs):
-            if o.value == '!':
+            if o[2] == '!':
                 if i_max is not None:
                     raise MultipleSpendMaxTxOutputs()
                 i_max = i
@@ -1274,20 +1274,20 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             raise CannotBumpFee(_('Cannot bump fee') + ': no outputs at all??')
 
         # prioritize low value outputs, to get rid of dust
-        s = sorted(s, key=lambda o: o.value)
+        s = sorted(s, key=lambda o: o[2])
         for o in s:
             target_fee = int(round(tx.estimated_size() * new_fee_rate))
             delta = target_fee - tx.get_fee()
             i = outputs.index(o)
-            if o.value - delta >= self.dust_threshold():
-                new_output_value = o.value - delta
+            if o[2] - delta >= self.dust_threshold():
+                new_output_value = o[2] - delta
                 assert isinstance(new_output_value, int)
-                outputs[i].value = new_output_value
+                outputs[i][2] = new_output_value
                 delta = 0
                 break
             else:
                 del outputs[i]
-                delta -= o.value
+                delta -= o[2]
                 # note: delta might be negative now, in which case
                 # the value of the next output will be increased
         if delta > 0:
@@ -1298,7 +1298,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     def cpfp(self, tx: Transaction, fee: int) -> Optional[PartialTransaction]:
         txid = tx.txid()
         for i, o in enumerate(tx.outputs()):
-            address, value = o.address, o.value
+            address, value = o[1], o[2]
             if self.is_mine(address):
                 break
         else:
@@ -1755,8 +1755,8 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         if isinstance(txin, PartialTxInput):
             v = txin.value_sats()
             if v: return v
-        txid = txin.prevout.txid.hex()
-        prev_n = txin.prevout.out_idx
+        txid = txin['prevout_hash']
+        prev_n = txin['prevout_n']
         for addr in self.db.get_txo_addresses(txid):
             d = self.db.get_txo_addr(txid, addr)
             for n, v, cb in d:
@@ -1774,7 +1774,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         coins = self.get_utxos(domain)
         now = time.time()
         p = price_func(now)
-        ap = sum(self.coin_price(coin.prevout.txid.hex(), price_func, ccy, self.txin_value(coin)) for coin in coins)
+        ap = sum(self.coin_price(coin['prevout_hash'], price_func, ccy, self.txin_value(coin)) for coin in coins)
         lp = sum([coin.value_sats() for coin in coins]) * p / Decimal(COIN)
         return lp - ap
 
