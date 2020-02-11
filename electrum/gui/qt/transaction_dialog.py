@@ -480,11 +480,11 @@ class BaseTxDialog(QDialog, MessageBoxMixin):
         i_text.setReadOnly(True)
         cursor = i_text.textCursor()
         for txin in self.tx.inputs():
-            if txin['type'] == 'coinbase':
+            if txin.is_coinbase_input():
                 cursor.insertText('coinbase')
             else:
-                prevout_hash = txin['prevout_hash']
-                prevout_n = txin['prevout_n']
+                prevout_hash = txin.prevout.txid.hex()
+                prevout_n = txin.prevout.out_idx
                 cursor.insertText(prevout_hash + ":%-4d " % prevout_n, ext)
                 addr = self.wallet.get_txin_address(txin)
                 if addr is None:
@@ -501,9 +501,8 @@ class BaseTxDialog(QDialog, MessageBoxMixin):
         o_text.setReadOnly(True)
         cursor = o_text.textCursor()
         for o in self.tx.outputs():
-            addr = o[1]
-            v = o[2]
-            cursor.insertText(addr, text_format(addr))
+            addr, v = o.get_ui_address_str(), o.value
+            cursor.insertText(addr[1], text_format(addr))
             if v is not None:
                 cursor.insertText('\t', ext)
                 cursor.insertText(format_amount(v), ext)

@@ -133,11 +133,11 @@ class AddressSynchronizer(Logger):
 
     def get_txin_address(self, txin: TxInput) -> Optional[str]:
         if isinstance(txin, PartialTxInput):
-            addr = txin.get('address')
+            addr = txin._trusted_address
             if addr != "(pubkey)":
                 return addr
-        prevout_hash = txin.get('prevout_hash')
-        prevout_n = txin.get('prevout_n')
+        prevout_hash = txin.prevout.txid
+        prevout_n = txin.prevout.out_idx
         for addr in self.db.get_txo_addresses(prevout_hash):
             l = self.db.get_txo_addr(prevout_hash, addr)
             for n, v, is_cb in l:
@@ -146,7 +146,7 @@ class AddressSynchronizer(Logger):
         return None
 
     def get_txout_address(self, txo: TxOutput) -> Optional[str]:
-        return txo[1]
+        return txo.address[1]
 
     def load_unverified_transactions(self):
         # review transactions that are in the history
@@ -195,10 +195,10 @@ class AddressSynchronizer(Logger):
         conflicting_txns = set()
         with self.transaction_lock:
             for txin in tx.inputs():
-                if txin['type'] == 'coinbase':
+                if txin.is_coinbase_input():
                     continue
-                prevout_hash = txin['prevout_hash']
-                prevout_n = txin['prevout_n']
+                prevout_hash = txin.prevout.txid.hex()
+                prevout_n = txin.prevout.out_idx
                 spending_tx_hash = self.db.get_spent_outpoint(prevout_hash, prevout_n)
                 if spending_tx_hash is None:
                     continue
@@ -229,8 +229,7 @@ class AddressSynchronizer(Logger):
             # BUT we track is_mine inputs in a txn, and during subsequent calls
             # of add_transaction tx, we might learn of more-and-more inputs of
             # being is_mine, as we roll the gap_limit forward
-            is_shielded_input = len(tx.inputs()) == 0
-            is_coinbase = not is_shielded_input and tx.inputs()[0]['type'] == 'coinbase'
+            is_coinbase = tx.inputs()[0].is_coinbase_input()
             tx_height = self.get_tx_height(tx_hash).height
             if not allow_unrelated:
                 # note that during sync, if the transactions are not properly sorted,
@@ -281,18 +280,18 @@ class AddressSynchronizer(Logger):
                                 self._get_addr_balance_cache.pop(addr, None)  # invalidate cache
                             return
             for txi in tx.inputs():
-                if  txi['type'] == 'coinbase':
+                if txi.is_coinbase_input():
                     continue
-                prevout_hash = txi['prevout_hash']
-                prevout_n = txi['prevout_n']
-                ser = prevout_hash + ':%d'%prevout_n
+                prevout_hash = txi.prevout.txid.hex()
+                prevout_n = txi.prevout.out_idx
+                ser = txi.prevout.to_str()
                 self.db.set_spent_outpoint(prevout_hash, prevout_n, tx_hash)
                 add_value_from_prev_output()
             # add outputs
             for n, txo in enumerate(tx.outputs()):
-                v = txo[2]
+                v = txo.value
                 ser = tx_hash + ':%d'%n
-                scripthash = bitcoin.script_to_scripthash(bfh(bitcoin.address_to_script(txo[1])).hex())
+                scripthash = bitcoin.script_to_scripthash(txo.scriptpubkey.hex())
                 self.db.add_prevout_by_scripthash(scripthash, prevout=TxOutpoint.from_str(ser), value=v)
                 addr = self.get_txout_address(txo)
                 if addr and self.is_mine(addr):
@@ -663,9 +662,9 @@ class AddressSynchronizer(Logger):
             if self.is_mine(addr):
                 is_mine = True
                 is_relevant = True
-                d = self.db.get_txo_addr(txin['prevout_hash'], addr)
+                d = self.db.get_txo_addr(txin.prevout.txid.hex(), addr)
                 for n, v, cb in d:
-                    if n == txin['prevout_n']:
+                    if n == txin.prevout.out_idx:
                         value = v
                         break
                 else:
@@ -681,9 +680,9 @@ class AddressSynchronizer(Logger):
         if not is_mine:
             is_partial = False
         for o in tx.outputs():
-            v_out += o[2]
-            if self.is_mine(o[1]):
-                v_out_mine += o[2]
+            v_out += o.value
+            if self.is_mine(o.address):
+                v_out_mine += o.value
                 is_relevant = True
         if is_pruned:
             # some inputs are mine:

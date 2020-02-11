@@ -1371,7 +1371,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             outputs = self.payto_e.get_outputs(self.max_button.isChecked())
         return outputs
 
-    def check_send_tab_onchain_outputs_and_show_errors(self, outputs: List[PartialTxOutput]) -> bool:
+    def check_send_tab_onchain_outputs_and_show_errors(self, outputs) -> bool:
         """Returns whether there are errors with outputs.
         Also shows error dialog to user if so.
         """
@@ -1380,10 +1380,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             return True
 
         for o in outputs:
-            if bitcoin.address_to_script(o[1]) is None:
+            if bitcoin.address_to_script(o.address[1]) is None:
                 self.show_error(_('Bitcoin Address is None'))
                 return True
-            if o[2] is None:
+            if o.value is None:
                 self.show_error(_('Invalid Amount'))
                 return True
 

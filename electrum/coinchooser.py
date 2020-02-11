@@ -156,7 +156,7 @@ class CoinChooserBase(Logger):
 
     def _change_amounts(self, tx: PartialTransaction, count: int, fee_estimator_numchange) -> List[int]:
         # Break change up if bigger than max_change
-        output_amounts = [o[2] for o in tx.outputs()]
+        output_amounts = [o.value for o in tx.outputs()]
         # Don't split change of less than 0.02 BTC
         max_change = max(max(output_amounts) * 1.25, 0.02 * COIN)
 
@@ -448,14 +448,14 @@ class CoinChooserPrivacy(CoinChooserRandom):
         return [coin.scriptpubkey.hex() for coin in coins]
 
     def penalty_func(self, base_tx, *, tx_from_buckets):
-        min_change = min(o[2] for o in base_tx.outputs()) * 0.75
-        max_change = max(o[2] for o in base_tx.outputs()) * 1.33
+        min_change = min(o.value for o in base_tx.outputs()) * 0.75
+        max_change = max(o.value for o in base_tx.outputs()) * 1.33
 
         def penalty(buckets: List[Bucket]) -> ScoredCandidate:
             # Penalize using many buckets (~inputs)
             badness = len(buckets) - 1
             tx, change_outputs = tx_from_buckets(buckets)
-            change = sum(o[2] for o in change_outputs)
+            change = sum(o.value for o in change_outputs)
             # Penalize change not roughly in output range
             if change == 0:
                 pass  # no change is great!

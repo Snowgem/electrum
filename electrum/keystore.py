@@ -490,14 +490,6 @@ class Xpub(MasterPublicKeyMixin):
         assert len(s) == 2
         return xkey, s
 
-    def get_pubkey_derivation(self, x_pubkey):
-        if x_pubkey[0:2] != 'ff':
-            return
-        xpub, derivation = self.parse_xpubkey(x_pubkey)
-        if self.xpub != xpub:
-            return
-        return derivation
-
 class BIP32_KeyStore(Xpub, Deterministic_KeyStore):
 
     type = 'bip32'
@@ -719,15 +711,6 @@ class Old_KeyStore(MasterPublicKeyMixin, Deterministic_KeyStore):
             s.append(n)
         assert len(s) == 2
         return mpk, s
-
-    def get_pubkey_derivation(self, x_pubkey):
-        if x_pubkey[0:2] != 'fe':
-            return
-        mpk, derivation = self.parse_xpubkey(x_pubkey)
-        if self.mpk != mpk:
-            return
-        return derivation
-
 
 class Hardware_KeyStore(Xpub, KeyStore):
     hw_type: str

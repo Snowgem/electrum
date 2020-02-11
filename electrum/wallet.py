@@ -253,7 +253,10 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         #      to something that can be typed.
         for invoice_key, invoice in self.invoices.items():
             if invoice.get('type') == PR_TYPE_ONCHAIN:
-                outputs = [PartialTxOutput.from_legacy_tuple(*output) for output in invoice.get('outputs')]
+                data = invoice.get('outputs')
+                outputs = []
+                for i in range(len(data)):
+                    outputs.append(PartialTxOutput.from_legacy_tuple(*data[i]))
                 invoice['outputs'] = outputs
         self._prepare_onchain_invoice_paid_detection()
         self.calc_unused_change_addresses()
@@ -655,7 +658,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     def _get_relevant_invoice_keys_for_tx(self, tx: Transaction) -> Set[str]:
         relevant_invoice_keys = set()
         for txout in tx.outputs():
-            for invoice_key in self._invoices_from_scriptpubkey_map.get(bitcoin.address_to_script(txout[1]), set()):
+            for invoice_key in self._invoices_from_scriptpubkey_map.get(txout.scriptpubkey, set()):
                 relevant_invoice_keys.add(invoice_key)
         return relevant_invoice_keys
 
@@ -673,11 +676,11 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         assert invoice.get('type') == PR_TYPE_ONCHAIN
         invoice_amounts = defaultdict(int)  # type: Dict[bytes, int]  # scriptpubkey -> value_sats
         for txo in invoice['outputs']:  # type: PartialTxOutput
-            invoice_amounts[bitcoin.address_to_script(txo[1])] += 1 if txo[2] == '!' else txo[2]
+            invoice_amounts[bitcoin.address_to_script(txo.address[1])] += 1 if txo.value == '!' else txo.value
         relevant_txs = []
         with self.transaction_lock:
             for invoice_scriptpubkey, invoice_amt in invoice_amounts.items():
-                scripthash = bitcoin.script_to_scripthash(invoice_scriptpubkey.hex())
+                scripthash = bitcoin.script_to_scripthash(invoice_scriptpubkey)
                 prevouts_and_values = self.db.get_prevouts_by_scripthash(scripthash)
                 relevant_txs += [prevout.txid.hex() for prevout, v in prevouts_and_values]
                 total_received = sum([v for prevout, v in prevouts_and_values])
@@ -996,7 +999,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         # check outputs
         i_max = None
         for i, o in enumerate(outputs):
-            if o[2] == '!':
+            if o.value == '!':
                 if i_max is not None:
                     raise MultipleSpendMaxTxOutputs()
                 i_max = i
@@ -1444,11 +1447,11 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                     k.sign_transaction(tmp_tx, password)
             except UserCancelled:
                 continue
-        # remove sensitive info; then copy back details from temporary tx
-        tmp_tx.remove_xpubs_and_bip32_paths()
-        tx.combine_with_other_psbt(tmp_tx)
-        tx.add_info_from_wallet(self, include_xpubs_and_full_paths=False)
-        return tx
+        # # remove sensitive info; then copy back details from temporary tx
+        # tmp_tx.remove_xpubs_and_bip32_paths()
+        # tx.combine_with_other_psbt(tmp_tx)
+        # tx.add_info_from_wallet(self, include_xpubs_and_full_paths=False)
+        # return tx
 
     def try_detecting_internal_addresses_corruption(self) -> None:
         pass
