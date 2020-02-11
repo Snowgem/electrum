@@ -146,7 +146,7 @@ class AddressSynchronizer(Logger):
         return None
 
     def get_txout_address(self, txo: TxOutput) -> Optional[str]:
-        return txo.address[1]
+        return txo.address
 
     def load_unverified_transactions(self):
         # review transactions that are in the history
@@ -341,7 +341,7 @@ class AddressSynchronizer(Logger):
             self.unverified_tx.pop(tx_hash, None)
             if tx:
                 for idx, txo in enumerate(tx.outputs()):
-                    scripthash = bitcoin.script_to_scripthash(bfh(bitcoin.address_to_script(txo[1])).hex())
+                    scripthash = bitcoin.script_to_scripthash(txo.scriptpubkey.hex())
                     prevout = TxOutpoint(bfh(tx_hash), idx)
                     self.db.remove_prevout_by_scripthash(scripthash, prevout=prevout, value=txo[2])
 

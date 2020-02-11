@@ -502,7 +502,7 @@ class BaseTxDialog(QDialog, MessageBoxMixin):
         cursor = o_text.textCursor()
         for o in self.tx.outputs():
             addr, v = o.get_ui_address_str(), o.value
-            cursor.insertText(addr[1], text_format(addr))
+            cursor.insertText(addr, text_format(addr))
             if v is not None:
                 cursor.insertText('\t', ext)
                 cursor.insertText(format_amount(v), ext)

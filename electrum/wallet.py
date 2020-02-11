@@ -676,7 +676,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         assert invoice.get('type') == PR_TYPE_ONCHAIN
         invoice_amounts = defaultdict(int)  # type: Dict[bytes, int]  # scriptpubkey -> value_sats
         for txo in invoice['outputs']:  # type: PartialTxOutput
-            invoice_amounts[bitcoin.address_to_script(txo.address[1])] += 1 if txo.value == '!' else txo.value
+            invoice_amounts[bitcoin.address_to_script(txo.address)] += 1 if txo.value == '!' else txo.value
         relevant_txs = []
         with self.transaction_lock:
             for invoice_scriptpubkey, invoice_amt in invoice_amounts.items():
@@ -785,7 +785,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             item['fee'] = Satoshis(tx_fee) if tx_fee is not None else None
             if show_addresses:
                 item['inputs'] = list(map(lambda x: x.to_json(), tx.inputs()))
-                item['outputs'] = list(map(lambda x: {'address': x[1], 'value': Satoshis(x[2])},
+                item['outputs'] = list(map(lambda x: {'address': x.get_ui_address_str(), 'value': Satoshis(x.value)},
                                            tx.outputs()))
             # fixme: use in and out values
             value = item['bc_value'].value
@@ -1301,7 +1301,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
     def cpfp(self, tx: Transaction, fee: int) -> Optional[PartialTransaction]:
         txid = tx.txid()
         for i, o in enumerate(tx.outputs()):
-            address, value = o[1], o[2]
+            address, value = o.address, o.value
             if self.is_mine(address):
                 break
         else:

@@ -473,7 +473,7 @@ class TrezorPlugin(HW_PluginBase):
         t.lock_time = tx.locktime
         t.inputs = self.tx_inputs(tx)
         t.bin_outputs = [
-            TxOutputBinType(amount=o[2], script_pubkey=bitcoin.address_to_script(o[1]))
+            TxOutputBinType(amount=o.value, script_pubkey=bitcoin.address_to_script(o.scriptpubkey))
             for o in tx.outputs()
         ]
         return t

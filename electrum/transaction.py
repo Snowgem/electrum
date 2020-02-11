@@ -139,14 +139,14 @@ class TxOutput:
     @classmethod
     def from_legacy_tuple(cls, _type: int, addr: str, val: Union[int, str]) -> Union['TxOutput', 'PartialTxOutput']:
         if _type == TYPE_ADDRESS:
-            return cls.from_address_and_value(addr[1], val)
+            return cls.from_address_and_value(addr, val)
         if _type == TYPE_SCRIPT:
             return cls(scriptpubkey=bfh(addr), value=val)
         raise Exception(f"unexptected legacy address type: {_type}")
 
     @property
     def address(self) -> Optional[str]:
-        return get_address_from_output_script(self.scriptpubkey)  # TODO cache this?
+        return get_address_from_output_script(self.scriptpubkey)[1]  # TODO cache this?
 
     def get_ui_address_str(self) -> str:
         addr = self.address
@@ -1115,7 +1115,7 @@ class Transaction:
     def serialize_output(self, output: TxOutput):
         output_type, addr, amount = output.to_legacy_tuple()
         s = int_to_hex(amount, 8)
-        script = self.pay_script(output_type, addr[1])
+        script = self.pay_script(output_type, addr)
         s += var_int(len(script)//2)
         s += script
         return s
@@ -1275,7 +1275,7 @@ class Transaction:
         if not hasattr(self, '_script_to_output_idx'):
             d = defaultdict(set)
             for output_idx, o in enumerate(self.outputs()):
-                o_script = bfh(bitcoin.address_to_script(o[1])).hex()
+                o_script = bfh(bitcoin.address_to_script(o.address)).hex()
                 assert isinstance(o_script, str)
                 d[o_script].add(output_idx)
             self._script_to_output_idx = d
@@ -1288,8 +1288,8 @@ class Transaction:
     def output_value_for_address(self, addr):
         # assumes exactly one output has that address
         for o in self.outputs():
-            if o[1] == addr:
-                return o[2]
+            if o.address == addr:
+                return o.value
         else:
             raise Exception('output not found', addr)
 
@@ -1643,7 +1643,7 @@ class PartialTxInput(TxInput, PSBTSection):
             out_idx = self.prevout.out_idx
             return self.utxo.outputs()[out_idx].scriptpubkey
         if self.witness_utxo:
-            return bitcoin.address_to_script(self.witness_utxo[1])
+            return self.witness_utxo.scriptpubkey
         return None
 
     def is_complete(self) -> bool:
@@ -2144,6 +2144,7 @@ class PartialTransaction(Transaction):
         return preimage
 
     def sign(self, keypairs) -> None:
+        _logger.info(f"sign transaction")
         # keypairs:  pubkey_hex -> (secret_bytes, is_compressed)
         bip143_shared_txdigest_fields = self._calc_bip143_shared_txdigest_fields()
         for i, txin in enumerate(self.inputs()):
