@@ -1561,9 +1561,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         d.show()
 
     def broadcast_or_show(self, tx: Transaction):
-        if not tx.is_complete():
-            self.show_transaction(tx)
-            return
+        # @tinh
+        # if not tx.is_complete():
+        #     self.show_transaction(tx)
+        #     return
         if not self.network:
             self.show_error(_("You can't broadcast a transaction without a live network connection."))
             self.show_transaction(tx)

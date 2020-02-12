@@ -281,6 +281,7 @@ if __name__ == '__main__':
     else:
         sys.argv[i] = '-v*'
 
+    sys.argv.append('-v*')
     # read arguments from stdin pipe and prompt
     for i, arg in enumerate(sys.argv):
         if arg == '-':

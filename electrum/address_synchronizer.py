@@ -41,7 +41,7 @@ from .logging import Logger
 if TYPE_CHECKING:
     from .network import Network
     from .json_db import JsonDB
-
+from .logging import Logger
 
 TX_HEIGHT_FUTURE = -3
 TX_HEIGHT_LOCAL = -2
@@ -760,7 +760,7 @@ class AddressSynchronizer(Logger):
             tx_height, value, is_cb = v
             prevout = TxOutpoint.from_str(prevout_str)
             utxo = PartialTxInput(prevout=prevout,
-                                  is_coinbase_output=is_cb)
+                                  is_coinbase_output=is_cb, txxsg=None)
             utxo._trusted_address = address
             utxo._trusted_value_sats = value
             utxo.block_height = tx_height

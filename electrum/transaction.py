@@ -216,7 +216,7 @@ class TxInput:
 
     def __init__(self, *,
                  prevout: TxOutpoint,
-                 txxsg: TxXsg = None,
+                 txxsg: TxXsg,
                  script_sig: bytes = None,
                  nsequence: int = 0xffffffff - 1,
                  witness: bytes = None,
@@ -530,7 +530,8 @@ def safe_parse_pubkey(x):
     except:
         return x
 
-def parse_scriptSig(d, _bytes):
+def parse_scriptSig(_bytes):
+    d = {}
     try:
         decoded = [ x for x in script_GetOp(_bytes) ]
     except Exception as e:
@@ -564,7 +565,7 @@ def parse_scriptSig(d, _bytes):
             d['num_sig'] = 1
             d['x_pubkeys'] = ["(pubkey)"]
             d['pubkeys'] = ["(pubkey)"]
-        return
+        return d
 
     # p2pkh TxIn transactions push a signature
     # (71-73 bytes) and then their public key
@@ -579,14 +580,13 @@ def parse_scriptSig(d, _bytes):
         except:
             raise Exception("parse_scriptSig: cannot find address in input script (p2pkh?)",
                         bh2u(_bytes))
-            return
         d['type'] = 'p2pkh'
         d['signatures'] = signatures
         d['x_pubkeys'] = [x_pubkey]
         d['num_sig'] = 1
         d['pubkeys'] = [pubkey]
         d['address'] = address
-        return
+        return d
 
     # p2sh transaction, m of n
     match = [ opcodes.OP_0 ] + [ opcodes.OP_PUSHDATA4 ] * (len(decoded) - 1)
@@ -599,7 +599,7 @@ def parse_scriptSig(d, _bytes):
                         bh2u(_bytes))
             # we could still guess:
             # d['address'] = hash160_to_p2sh(hash_160(decoded[-1][1]))
-            return
+            return None
         # write result in d
         d['type'] = 'p2sh'
         d['num_sig'] = m
@@ -608,7 +608,7 @@ def parse_scriptSig(d, _bytes):
         d['pubkeys'] = pubkeys
         d['redeemScript'] = redeemScript
         d['address'] = hash160_to_p2sh(hash_160(bfh(redeemScript)))
-        return
+        return d
 
     raise Exception("parse_scriptSig: cannot find address in input script (unknown)",
                 bh2u(_bytes))
@@ -668,14 +668,33 @@ def parse_input(vds) -> TxInput:
     script_sig = vds.read_bytes(vds.read_compact_size())
     nsequence = vds.read_uint32()
 
-    # custom field
     x_pubkeys = []
     pubkeys = []
     signatures = {}
     address = None
     num_sig = 0
+
+    data = None
+    if script_sig:
+        try:
+            data = parse_scriptSig(script_sig)
+            if data != None:
+                x_pubkeys = data['x_pubkeys']
+                pubkeys = data['pubkeys']
+                signatures = data['signatures']
+                num_sig = data['num_sig']
+                address = data['address']
+            else:
+                raise Exception("parse_scriptSig: Error")
+        except BaseException:
+            raise Exception("parse_scriptSig: Error")
+    else:
+        script_sig = None
+    # custom field
+
+
     txxsg = TxXsg(x_pubkeys=x_pubkeys, pubkeys=pubkeys, signatures=signatures, address=address, num_sig=num_sig)
-    
+
     return TxInput(prevout=prevout,txxsg=txxsg, script_sig=script_sig, nsequence=nsequence)
 
 def parse_witness(vds, txin):
@@ -2144,7 +2163,6 @@ class PartialTransaction(Transaction):
         return preimage
 
     def sign(self, keypairs) -> None:
-        _logger.info(f"sign transaction")
         # keypairs:  pubkey_hex -> (secret_bytes, is_compressed)
         bip143_shared_txdigest_fields = self._calc_bip143_shared_txdigest_fields()
         for i, txin in enumerate(self.inputs()):
@@ -2154,7 +2172,7 @@ class PartialTransaction(Transaction):
                     break
                 if pubkey not in keypairs:
                     continue
-                _logger.info(f"adding signature for {pubkey}")
+                _logger.info(f"adding signature for {txin.utxo}")
                 sec, compressed = keypairs[pubkey]
                 sig = self.sign_txin(i, sec, bip143_shared_txdigest_fields=bip143_shared_txdigest_fields)
                 self.add_signature_to_txin(txin_idx=i, signing_pubkey=pubkey, sig=sig)
